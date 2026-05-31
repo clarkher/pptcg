@@ -1,0 +1,9 @@
+{
+  "name": "pptcg",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "backend": "cd backend && npm run dev"
+  }
+}
