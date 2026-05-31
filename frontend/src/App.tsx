@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
 import { Home } from './pages/Home';
 import { Market } from './pages/Market';
-import { Sell } from './pages/Sell';
 import { Orders } from './pages/Orders';
 import { Profile } from './pages/Profile';
 import { Login } from './pages/Login';
@@ -22,7 +21,6 @@ function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/market" element={<Market />} />
-                <Route path="/sell" element={<Sell />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/listing/:id" element={<ListingDetail />} />

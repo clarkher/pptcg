@@ -5,16 +5,14 @@ interface Props {
 
 export function GameBadge({ game, size = 'sm' }: Props) {
   const isYugioh = game === 'yugioh';
-  const px = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm';
+  const cls = size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs';
   return (
-    <span
-      className={`${px} rounded-full font-bold ${
-        isYugioh
-          ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-          : 'bg-red-500/20 text-red-400 border border-red-500/30'
-      }`}
-    >
-      {isYugioh ? '遊戲王' : '寶可夢'}
+    <span className={`${cls} rounded-full font-bold tracking-wide inline-flex items-center gap-1`}
+      style={isYugioh
+        ? { background: 'rgba(234,179,8,0.15)', color: '#EAB308', border: '1px solid rgba(234,179,8,0.3)' }
+        : { background: 'rgba(239,68,68,0.15)', color: '#F87171', border: '1px solid rgba(239,68,68,0.3)' }
+      }>
+      {isYugioh ? '⚔️ 遊戲王' : '⚡ 寶可夢'}
     </span>
   );
 }

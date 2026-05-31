@@ -24,60 +24,61 @@ export function Login() {
     }
   };
 
+  const inputStyle = {
+    background: '#111124',
+    border: '1px solid rgba(255,255,255,0.08)',
+    fontFamily: 'inherit',
+  };
+
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center p-6 bg-[#0D0D1A]">
+    <div className="min-h-dvh flex flex-col items-center justify-center p-6 page-enter"
+      style={{ background: 'radial-gradient(ellipse at top, #1E1040 0%, #0A0A14 60%)' }}>
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🃏</div>
-          <h1 className="text-2xl font-bold text-slate-100">屁TCG</h1>
-          <p className="text-slate-400 text-sm mt-1">卡牌交易平台</p>
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div className="inline-flex w-20 h-20 rounded-3xl items-center justify-center mb-4 text-4xl"
+            style={{ background: 'linear-gradient(135deg,#7C3AED,#4F46E5)', boxShadow: '0 0 40px rgba(124,58,237,0.4)' }}>
+            🃏
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-white">
+            屁<span style={{ color: '#A78BFA' }}>TCG</span>
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">卡牌交易平台</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm text-center">
+            <div className="rounded-xl p-3 text-sm text-center font-medium"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171' }}>
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#16213E] border border-[#0F3460] rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-violet-500 transition-colors"
-              placeholder="your@email.com"
-              required
-            />
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5 tracking-wide uppercase">Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3.5 rounded-xl text-slate-100 focus:outline-none text-sm"
+              style={inputStyle} placeholder="your@email.com" required />
           </div>
 
           <div>
-            <label className="block text-sm text-slate-400 mb-1.5">密碼</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#16213E] border border-[#0F3460] rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-violet-500 transition-colors"
-              placeholder="••••••••"
-              required
-            />
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5 tracking-wide uppercase">密碼</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3.5 rounded-xl text-slate-100 focus:outline-none text-sm"
+              style={inputStyle} placeholder="••••••••" required />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
-          >
+          <button type="submit" disabled={loading}
+            className="w-full py-3.5 rounded-xl font-bold text-white text-base transition-opacity active:opacity-80"
+            style={{ background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', opacity: loading ? 0.6 : 1,
+              boxShadow: '0 4px 24px rgba(124,58,237,0.35)' }}>
             {loading ? '登入中...' : '登入'}
           </button>
         </form>
 
-        <p className="text-center text-slate-400 text-sm mt-6">
+        <p className="text-center text-slate-500 text-sm mt-6">
           還沒帳號？{' '}
-          <Link to="/register" className="text-violet-400 font-medium">
-            立即註冊
-          </Link>
+          <Link to="/register" className="font-semibold" style={{ color: '#A78BFA' }}>立即註冊</Link>
         </p>
       </div>
     </div>

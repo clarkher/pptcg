@@ -25,74 +25,57 @@ export function Register() {
     }
   };
 
+  const inputStyle = {
+    background: '#111124',
+    border: '1px solid rgba(255,255,255,0.08)',
+    fontFamily: 'inherit',
+  };
+
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center p-6 bg-[#0D0D1A]">
+    <div className="min-h-dvh flex flex-col items-center justify-center p-6 page-enter"
+      style={{ background: 'radial-gradient(ellipse at top, #1E1040 0%, #0A0A14 60%)' }}>
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🃏</div>
-          <h1 className="text-2xl font-bold text-slate-100">建立帳號</h1>
-          <p className="text-slate-400 text-sm mt-1">加入屁TCG交易平台</p>
+        <div className="text-center mb-10">
+          <div className="inline-flex w-20 h-20 rounded-3xl items-center justify-center mb-4 text-4xl"
+            style={{ background: 'linear-gradient(135deg,#7C3AED,#4F46E5)', boxShadow: '0 0 40px rgba(124,58,237,0.4)' }}>
+            🃏
+          </div>
+          <h1 className="text-2xl font-black text-white">建立帳號</h1>
+          <p className="text-slate-500 text-sm mt-1">加入屁TCG交易平台</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm text-center">
+            <div className="rounded-xl p-3 text-sm text-center font-medium"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171' }}>
               {error}
             </div>
           )}
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#16213E] border border-[#0F3460] rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-violet-500 transition-colors"
-              placeholder="your@email.com"
-              required
-            />
-          </div>
+          {[
+            { label: 'Email', type: 'email', value: email, set: setEmail, ph: 'your@email.com', min: undefined },
+            { label: '帳號名稱', type: 'text', value: username, set: setUsername, ph: '你的暱稱', min: 2 },
+            { label: '密碼', type: 'password', value: password, set: setPassword, ph: '至少 6 個字元', min: 6 },
+          ].map((f) => (
+            <div key={f.label}>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5 tracking-wide uppercase">{f.label}</label>
+              <input type={f.type} value={f.value} onChange={(e) => f.set(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl text-slate-100 focus:outline-none text-sm"
+                style={inputStyle} placeholder={f.ph} required minLength={f.min} />
+            </div>
+          ))}
 
-          <div>
-            <label className="block text-sm text-slate-400 mb-1.5">帳號名稱</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-[#16213E] border border-[#0F3460] rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-violet-500 transition-colors"
-              placeholder="你的暱稱"
-              required
-              minLength={2}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-slate-400 mb-1.5">密碼</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#16213E] border border-[#0F3460] rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-violet-500 transition-colors"
-              placeholder="至少 6 個字元"
-              required
-              minLength={6}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors"
-          >
+          <button type="submit" disabled={loading}
+            className="w-full py-3.5 rounded-xl font-bold text-white text-base transition-opacity active:opacity-80"
+            style={{ background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', opacity: loading ? 0.6 : 1,
+              boxShadow: '0 4px 24px rgba(124,58,237,0.35)' }}>
             {loading ? '建立中...' : '建立帳號'}
           </button>
         </form>
 
-        <p className="text-center text-slate-400 text-sm mt-6">
+        <p className="text-center text-slate-500 text-sm mt-6">
           已有帳號？{' '}
-          <Link to="/login" className="text-violet-400 font-medium">
-            立即登入
-          </Link>
+          <Link to="/login" className="font-semibold" style={{ color: '#A78BFA' }}>立即登入</Link>
         </p>
       </div>
     </div>
