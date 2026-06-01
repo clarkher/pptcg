@@ -7,13 +7,27 @@ import { Profile } from './pages/Profile';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ListingDetail } from './pages/ListingDetail';
+import { AdminLayout } from './pages/admin/AdminLayout';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminListings } from './pages/admin/AdminListings';
+import { AdminOrders } from './pages/admin/AdminOrders';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Auth pages */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
+        {/* Admin — no bottom nav, own layout */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="listings" element={<AdminListings />} />
+          <Route path="orders" element={<AdminOrders />} />
+        </Route>
+
+        {/* Buyer-facing pages */}
         <Route
           path="*"
           element={

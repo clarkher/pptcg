@@ -35,7 +35,7 @@ export async function login(req: Request, res: Response) {
   }
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   res.json({
-    user: { id: user.id, email: user.email, username: user.username, wallet: user.wallet },
+    user: { id: user.id, email: user.email, username: user.username, wallet: user.wallet, isAdmin: user.isAdmin },
     token,
   });
 }
@@ -43,7 +43,7 @@ export async function login(req: Request, res: Response) {
 export async function me(req: AuthRequest, res: Response) {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, username: true, wallet: true, avatar: true },
+    select: { id: true, email: true, username: true, wallet: true, avatar: true, isAdmin: true },
   });
   if (!user) {
     res.status(404).json({ error: '使用者不存在' });

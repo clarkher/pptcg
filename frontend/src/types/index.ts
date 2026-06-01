@@ -4,6 +4,7 @@ export interface User {
   username: string;
   wallet: number;
   avatar?: string;
+  isAdmin?: boolean;
 }
 
 export interface Card {
