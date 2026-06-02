@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, loginWithGoogle } = useAuthStore();
+  const { login } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,7 +34,6 @@ export function Login() {
     <div className="min-h-dvh flex flex-col items-center justify-center p-6 page-enter"
       style={{ background: 'radial-gradient(ellipse at top, #1E1040 0%, #0A0A14 60%)' }}>
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-10">
           <div className="inline-flex w-20 h-20 rounded-3xl items-center justify-center mb-4 text-4xl"
             style={{ background: 'linear-gradient(135deg,#7C3AED,#4F46E5)', boxShadow: '0 0 40px rgba(124,58,237,0.4)' }}>
@@ -76,37 +74,6 @@ export function Login() {
             {loading ? '登入中...' : '登入'}
           </button>
         </form>
-
-        <div className="mt-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <span className="text-xs text-slate-500">或</span>
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-          </div>
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={async ({ credential }) => {
-                if (!credential) return;
-                setError('');
-                setLoading(true);
-                try {
-                  await loginWithGoogle(credential);
-                  navigate('/');
-                } catch {
-                  setError('Google 登入失敗，請稍後再試');
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              onError={() => setError('Google 登入失敗，請稍後再試')}
-              theme="filled_black"
-              shape="rectangular"
-              size="large"
-              text="signin_with"
-              locale="zh_TW"
-            />
-          </div>
-        </div>
 
         <p className="text-center text-slate-500 text-sm mt-6">
           還沒帳號？{' '}
