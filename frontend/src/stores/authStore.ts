@@ -7,6 +7,7 @@ interface AuthState {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -19,6 +20,11 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       login: async (email, password) => {
         const { data } = await api.post('/auth/login', { email, password });
+        localStorage.setItem('pptcg_token', data.token);
+        set({ user: data.user, token: data.token });
+      },
+      loginWithGoogle: async (credential) => {
+        const { data } = await api.post('/auth/google', { credential });
         localStorage.setItem('pptcg_token', data.token);
         set({ user: data.user, token: data.token });
       },

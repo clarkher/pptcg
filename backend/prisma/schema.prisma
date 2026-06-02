@@ -11,7 +11,8 @@ model User {
   id        String    @id @default(cuid())
   email     String    @unique
   username  String    @unique
-  password  String
+  password  String?
+  googleId  String?   @unique
   avatar    String?
   wallet    Float     @default(1000)
   isAdmin   Boolean   @default(false)
