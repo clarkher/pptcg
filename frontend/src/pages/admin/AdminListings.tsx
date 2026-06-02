@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { adminApi } from '../../api/admin';
+import { uploadImage } from '../../api/upload';
 import type { Listing } from '../../types';
 
 const CONDITIONS = ['NM', 'LP', 'MP', 'HP'];
@@ -18,9 +19,21 @@ export function AdminListings() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState('');
+  const [uploadingImg, setUploadingImg] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadListings = () => adminApi.getListings().then(setListings).finally(() => setLoading(false));
   useEffect(() => { loadListings(); }, []);
+
+  const handleImageFile = async (file: File) => {
+    setUploadingImg(true);
+    try {
+      const url = await uploadImage(file);
+      setForm((f) => ({ ...f, cardImage: url }));
+    } finally {
+      setUploadingImg(false);
+    }
+  };
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setShowForm(true); };
   const openEdit = (l: Listing) => {
@@ -203,9 +216,19 @@ export function AdminListings() {
                 </select>
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">圖片網址</label>
-                <input value={form.cardImage} onChange={(e) => setForm({ ...form, cardImage: e.target.value })}
-                  placeholder="https://..." className={inputCls} style={inputStyle} />
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">卡牌圖片</label>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }} />
+                <div className="flex gap-2">
+                  <input value={form.cardImage} onChange={(e) => setForm({ ...form, cardImage: e.target.value })}
+                    placeholder="https://... 或點右側上傳" className={`${inputCls} flex-1`} style={inputStyle} />
+                  <button type="button" onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImg}
+                    className="px-3 py-2 rounded-xl text-xs font-bold text-slate-300 whitespace-nowrap"
+                    style={{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.3)' }}>
+                    {uploadingImg ? '上傳中...' : '📷 上傳'}
+                  </button>
+                </div>
               </div>
               {form.cardImage && (
                 <div className="col-span-2 flex justify-center">

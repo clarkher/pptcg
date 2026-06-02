@@ -5,6 +5,7 @@ import cardRoutes from './routes/cards';
 import listingRoutes from './routes/listings';
 import orderRoutes from './routes/orders';
 import adminRoutes from './routes/admin';
+import uploadRoutes from './routes/upload';
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use('/api/listings', listingRoutes);
 app.use('/api/orders', orderRoutes);
 
 app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'PPTCG API' }));
 
 export default app;

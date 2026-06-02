@@ -1,0 +1,7 @@
+name = "pipicards-upload"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+[[r2_buckets]]
+binding = "PIPICARDS_IMAGES"
+bucket_name = "pipicards-images"
