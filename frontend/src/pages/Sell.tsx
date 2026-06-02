@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cardsApi } from '../api/cards';
 import { listingsApi } from '../api/listings';
+import { uploadImage } from '../api/upload';
 import type { Card, Condition } from '../types';
 import { Header } from '../components/Header';
 import { GameBadge } from '../components/GameBadge';
@@ -30,6 +31,14 @@ export function Sell() {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [customImage, setCustomImage] = useState<File | null>(null);
+  const [customImagePreview, setCustomImagePreview] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCustomImage = (file: File) => {
+    setCustomImage(file);
+    setCustomImagePreview(URL.createObjectURL(file));
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -50,11 +59,15 @@ export function Sell() {
     setSubmitting(true);
     setError('');
     try {
+      let cardImage = selectedCard.image || '';
+      if (customImage) {
+        cardImage = await uploadImage(customImage);
+      }
       await listingsApi.create({
         cardId: selectedCard.id,
         cardName: selectedCard.name,
         cardGame: selectedCard.game,
-        cardImage: selectedCard.image || '',
+        cardImage,
         condition,
         price: parseFloat(price),
         quantity: parseInt(quantity) || 1,
@@ -174,6 +187,36 @@ export function Sell() {
                 <p className="font-medium text-slate-100">{selectedCard.name}</p>
                 <GameBadge game={selectedCard.game} />
               </div>
+            </div>
+
+            {/* Custom photo upload */}
+            <div>
+              <label className="block text-sm text-slate-400 mb-2">上傳實物照片（可選）</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCustomImage(f); }}
+              />
+              {customImagePreview ? (
+                <div className="relative inline-block">
+                  <img src={customImagePreview} className="h-24 rounded-xl object-contain bg-[#16213E]" />
+                  <button
+                    type="button"
+                    onClick={() => { setCustomImage(null); setCustomImagePreview(''); }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"
+                  >✕</button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full border border-dashed border-[#0F3460] hover:border-violet-500/50 rounded-xl py-4 text-slate-500 text-sm transition-colors"
+                >
+                  📷 點此上傳照片
+                </button>
+              )}
             </div>
 
             {error && (
