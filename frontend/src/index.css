@@ -1,15 +1,11 @@
 @import "tailwindcss";
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background-color: #0A0A14;
+  background: #080812;
   color: #F1F5F9;
-  font-family: 'Inter', 'Noto Sans TC', system-ui, sans-serif;
+  font-family: -apple-system, 'Noto Sans TC', 'PingFang TC', sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
@@ -19,37 +15,31 @@ body {
   max-width: 430px;
   margin: 0 auto;
   min-height: 100dvh;
-  position: relative;
-  background-color: #0A0A14;
+  background: #080812;
   overflow-x: hidden;
+  position: relative;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 0; }
 
-/* Input autofill dark */
 input:-webkit-autofill,
-input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #13132A inset;
+  -webkit-box-shadow: 0 0 0 1000px #111124 inset;
   -webkit-text-fill-color: #F1F5F9;
-  caret-color: #F1F5F9;
 }
 
-/* Smooth page transitions */
-.page-enter { animation: fadeUp 0.2s ease; }
+.page-enter { animation: fadeUp 0.18s ease; }
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Card shimmer skeleton */
 @keyframes shimmer {
   0%   { background-position: -400px 0; }
   100% { background-position: 400px 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #1A1A35 25%, #22224A 50%, #1A1A35 75%);
+  background: linear-gradient(90deg, #131326 25%, #1A1A38 50%, #131326 75%);
   background-size: 800px 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 1.4s infinite;
 }
