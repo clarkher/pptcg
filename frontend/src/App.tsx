@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { BottomNav } from './components/BottomNav';
+import { AppShell } from './components/AppShell';
 import { Home } from './pages/Home';
 import { Market } from './pages/Market';
 import { Orders } from './pages/Orders';
@@ -20,17 +20,20 @@ function App() {
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <BrowserRouter>
         <Routes>
+          {/* Auth — no shell */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
+          {/* Admin — own layout */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="listings" element={<AdminListings />} />
             <Route path="orders" element={<AdminOrders />} />
           </Route>
 
+          {/* Main app — uses AppShell (sidebar on desktop, bottom nav on mobile) */}
           <Route path="*" element={
-            <>
+            <AppShell>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/market" element={<Market />} />
@@ -38,8 +41,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/listing/:id" element={<ListingDetail />} />
               </Routes>
-              <BottomNav />
-            </>
+            </AppShell>
           } />
         </Routes>
       </BrowserRouter>

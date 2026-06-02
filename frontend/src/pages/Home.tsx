@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listingsApi } from '../api/listings';
 import type { Listing } from '../types';
-import { CardItem } from '../components/CardItem';
-import { CardSkeleton } from '../components/LoadingSpinner';
+import { CardGrid } from '../components/CardGrid';
 import { useAuthStore } from '../stores/authStore';
 
 export function Home() {
@@ -17,10 +16,10 @@ export function Home() {
   }, []);
 
   return (
-    <div style={{ paddingBottom: 100 }}>
+    <div style={{ paddingBottom: 100 }} className="page-enter">
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      {/* Header — mobile only (desktop uses sidebar) */}
+      <div className="mobile-only-header" style={{ alignItems: 'center', justifyContent: 'space-between',
         padding: '52px 20px 12px' }}>
         <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: -0.5 }}>
           屁<span style={{ color: '#A78BFA' }}>TCG</span>
@@ -104,21 +103,8 @@ export function Home() {
           </button>
         </div>
 
-        {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {[0,1,2,3].map(i => <CardSkeleton key={i} />)}
-          </div>
-        ) : listings.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 0', borderRadius: 16,
-            background: '#111124', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div style={{ fontSize: 32, opacity: 0.2, marginBottom: 8 }}>📭</div>
-            <p style={{ color: '#64748B', fontSize: 14 }}>尚無商品</p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {listings.slice(0, 6).map(l => <CardItem key={l.id} listing={l} />)}
-          </div>
-        )}
+        <CardGrid listings={listings} loading={loading} limit={6}
+          emptyText="尚無商品" emptySubText="店長正在上架中，請稍候" />
       </div>
     </div>
   );

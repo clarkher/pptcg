@@ -2,8 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { listingsApi } from '../api/listings';
 import type { Listing, Game } from '../types';
-import { CardItem } from '../components/CardItem';
-import { CardSkeleton } from '../components/LoadingSpinner';
+import { CardGrid } from '../components/CardGrid';
 
 const TABS: { label: string; value: Game; emoji: string }[] = [
   { label: '全部', value: 'all', emoji: '🃏' },
@@ -84,21 +83,8 @@ export function Market() {
 
       {/* Grid */}
       <div style={{ padding: '0 16px' }}>
-        {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {[0,1,2,3,4,5].map(i => <CardSkeleton key={i} />)}
-          </div>
-        ) : listings.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '64px 0' }}>
-            <div style={{ fontSize: 48, opacity: 0.2, marginBottom: 12 }}>🔍</div>
-            <p style={{ color: '#94A3B8', fontWeight: 600, marginBottom: 4 }}>找不到相符商品</p>
-            <p style={{ color: '#475569', fontSize: 13 }}>換個關鍵字試試看</p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {listings.map(l => <CardItem key={l.id} listing={l} />)}
-          </div>
-        )}
+        <CardGrid listings={listings} loading={loading}
+          emptyText="找不到相符商品" emptySubText="換個關鍵字試試看" emptyIcon="🔍" />
       </div>
     </div>
   );
