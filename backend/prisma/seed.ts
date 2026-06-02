@@ -82,7 +82,7 @@ async function main() {
       cardId: 'blue-eyes-alt',
       cardName: '青眼白龍（另一形態）',
       cardGame: 'yugioh',
-      cardImage: 'https://images.ygoprodeck.com/images/cards/819325.jpg',
+      cardImage: 'https://images.ygoprodeck.com/images/cards/23995346.jpg',
       condition: 'MP',
       price: 120,
       description: '中度磨損 可當遊玩用卡',

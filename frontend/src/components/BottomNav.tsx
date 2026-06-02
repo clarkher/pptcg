@@ -69,9 +69,8 @@ export function BottomNav() {
               style={{ color: isActive ? '#A78BFA' : '#475569' }}>
               <Icon active={isActive} />
               <span className="text-[10px] font-semibold">{item.label}</span>
-              {isActive && (
-                <div className="w-4 h-0.5 rounded-full mt-0.5" style={{ background: '#A78BFA' }} />
-              )}
+              <div style={{ width: 16, height: 2, borderRadius: 2, marginTop: 2,
+                background: isActive ? '#A78BFA' : 'transparent' }} />
             </button>
           );
         })}

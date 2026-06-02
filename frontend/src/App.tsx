@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BottomNav } from './components/BottomNav';
 import { Home } from './pages/Home';
 import { Market } from './pages/Market';
@@ -12,25 +13,23 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminListings } from './pages/admin/AdminListings';
 import { AdminOrders } from './pages/admin/AdminOrders';
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Auth pages */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* Admin — no bottom nav, own layout */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="listings" element={<AdminListings />} />
-          <Route path="orders" element={<AdminOrders />} />
-        </Route>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="listings" element={<AdminListings />} />
+            <Route path="orders" element={<AdminOrders />} />
+          </Route>
 
-        {/* Buyer-facing pages */}
-        <Route
-          path="*"
-          element={
+          <Route path="*" element={
             <>
               <Routes>
                 <Route path="/" element={<Home />} />
@@ -41,10 +40,10 @@ function App() {
               </Routes>
               <BottomNav />
             </>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+          } />
+        </Routes>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
   );
 }
 
