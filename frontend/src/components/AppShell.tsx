@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import brandLogo from '../assets/brand-logo.png';
-import brandLogoWhite from '../assets/brand-logo-white.png';
 
 const NAV = [
   { path: '/', label: '首頁', exact: true, icon: HomeIcon },
