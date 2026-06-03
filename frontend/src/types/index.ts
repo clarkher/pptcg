@@ -27,6 +27,7 @@ export interface Listing {
   price: number;
   quantity: number;
   description?: string;
+  language?: string;
   status: string;
   createdAt: string;
   seller: { username: string; avatar?: string };

@@ -3,26 +3,25 @@ import { prisma } from '../lib/prisma';
 
 const router = Router();
 
-// Search Pokemon cards from DB
+// Search cards — filtered by language + series + set + name
 router.get('/search', async (req: Request, res: Response) => {
-  const { q = '', setId, rarity, page = '1', limit = '24' } = req.query as Record<string, string>;
-  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const {
+    q = '', language = '', seriesKey = '', setId = '',
+    page = '1', limit = '24',
+  } = req.query as Record<string, string>;
 
+  const skip = (parseInt(page) - 1) * parseInt(limit);
   const where: any = {};
-  if (q.trim()) where.name = { contains: q.trim(), mode: 'insensitive' };
+
+  if (language) where.language = language;
+  if (seriesKey) where.seriesKey = seriesKey;
   if (setId) where.setId = setId;
-  if (rarity) where.rarity = rarity;
+  if (q.trim()) where.name = { contains: q.trim(), mode: 'insensitive' };
 
   const [cards, total] = await Promise.all([
     prisma.pokemonCard.findMany({
       where, skip, take: parseInt(limit),
-      orderBy: [{ releaseDate: 'desc' }, { name: 'asc' }],
-      select: {
-        id: true, name: true, number: true,
-        imageSmall: true, imageLarge: true,
-        rarity: true, setId: true, setName: true,
-        setSeries: true, releaseDate: true, types: true, hp: true,
-      },
+      orderBy: [{ releaseDate: 'desc' }, { number: 'asc' }],
     }),
     prisma.pokemonCard.count({ where }),
   ]);
@@ -30,23 +29,54 @@ router.get('/search', async (req: Request, res: Response) => {
   res.json({ cards, total, page: parseInt(page), pages: Math.ceil(total / parseInt(limit)) });
 });
 
-// Get all sets (for filter dropdown)
-router.get('/sets', async (_req: Request, res: Response) => {
-  const sets = await prisma.pokemonCard.findMany({
-    distinct: ['setId'],
-    select: { setId: true, setName: true, setSeries: true, releaseDate: true },
-    orderBy: { releaseDate: 'desc' },
+// Get series list grouped by language
+router.get('/series', async (req: Request, res: Response) => {
+  const { language = 'en' } = req.query as Record<string, string>;
+
+  const series = await prisma.pokemonCard.groupBy({
+    by: ['seriesKey', 'seriesName', 'language'],
+    where: { language },
+    _count: { id: true },
+    orderBy: { seriesKey: 'asc' },
   });
-  res.json(sets);
+
+  res.json(series.map(s => ({
+    key: s.seriesKey,
+    name: s.seriesName,
+    language: s.language,
+    count: s._count.id,
+  })));
 });
 
-// Get DB stats
+// Get sets within a series + language
+router.get('/sets', async (req: Request, res: Response) => {
+  const { language = 'en', seriesKey = '' } = req.query as Record<string, string>;
+
+  const where: any = { language };
+  if (seriesKey) where.seriesKey = seriesKey;
+
+  const sets = await prisma.pokemonCard.groupBy({
+    by: ['setId', 'setName', 'setLogo', 'releaseDate', 'language', 'seriesKey'],
+    where,
+    _count: { id: true },
+    orderBy: { releaseDate: 'desc' },
+  });
+
+  res.json(sets.map(s => ({
+    id: s.setId, name: s.setName, logo: s.setLogo,
+    releaseDate: s.releaseDate, language: s.language,
+    seriesKey: s.seriesKey, count: s._count.id,
+  })));
+});
+
+// Stats
 router.get('/stats', async (_req: Request, res: Response) => {
-  const [total, sets] = await Promise.all([
-    prisma.pokemonCard.count(),
-    prisma.pokemonCard.findMany({ distinct: ['setId'], select: { setId: true } }),
+  const [en, ja, zh] = await Promise.all([
+    prisma.pokemonCard.count({ where: { language: 'en' } }),
+    prisma.pokemonCard.count({ where: { language: 'ja' } }),
+    prisma.pokemonCard.count({ where: { language: 'zh' } }),
   ]);
-  res.json({ total, sets: sets.length });
+  res.json({ en, ja, zh, total: en + ja + zh });
 });
 
 export default router;

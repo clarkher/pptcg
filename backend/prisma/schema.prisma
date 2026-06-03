@@ -28,6 +28,7 @@ model Listing {
   cardName    String
   cardGame    String
   cardImage   String
+  language    String   @default("en")    // "en" | "ja" | "zh"
   condition   String   @default("NM")
   price       Float
   quantity    Int      @default(1)
@@ -39,26 +40,31 @@ model Listing {
   orders      Order[]
 }
 
+// Each card entry is language-specific
+// id format: "en:sv1-1" | "ja:SV1S-001" | "zh:sv1a-1"
 model PokemonCard {
   id          String   @id
-  name        String
-  number      String
-  imageSmall  String
-  imageLarge  String
-  rarity      String?
-  setId       String
+  language    String              // "en" | "ja" | "zh"
+  setId       String              // Source set ID
   setName     String
-  setSeries   String
+  seriesKey   String              // Normalized: "sv" | "swsh" | "xy" etc
+  seriesName  String              // Display: "Scarlet & Violet" | "スカーレット＆バイオレット"
   setLogo     String?
-  releaseDate String
+  releaseDate String?
+  number      String
+  name        String
+  image       String              // Card image URL
+  imageHigh   String?             // High res image
+  rarity      String?
   hp          String?
-  types       String?
-  supertype   String?
-  createdAt   DateTime @default(now())
+  types       String?             // JSON array
+  supertype   String?             // Pokémon | Trainer | Energy
 
-  @@index([name])
+  @@index([language])
+  @@index([seriesKey])
   @@index([setId])
-  @@index([releaseDate])
+  @@index([name])
+  @@index([language, seriesKey])
 }
 
 model Order {

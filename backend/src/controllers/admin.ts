@@ -13,7 +13,7 @@ export async function adminGetListings(_req: AuthRequest, res: Response) {
 }
 
 export async function adminCreateListing(req: AuthRequest, res: Response) {
-  const { cardId, cardName, cardGame, cardImage, condition, price, quantity, description } = req.body;
+  const { cardId, cardName, cardGame, cardImage, language, condition, price, quantity, description } = req.body;
   if (!cardId || !cardName || !cardGame || price === undefined) {
     res.status(400).json({ error: '缺少必要資料' });
     return;
@@ -24,6 +24,7 @@ export async function adminCreateListing(req: AuthRequest, res: Response) {
       cardName,
       cardGame,
       cardImage: cardImage || '',
+      language: language || 'en',
       condition: condition || 'NM',
       price: parseFloat(price),
       quantity: parseInt(quantity) || 1,
