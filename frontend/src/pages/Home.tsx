@@ -4,6 +4,8 @@ import { listingsApi } from '../api/listings';
 import type { Listing } from '../types';
 import { CardGrid } from '../components/CardGrid';
 import { useAuthStore } from '../stores/authStore';
+import heroBanner from '../assets/hero-banner.png';
+import appLogo from '../assets/app-logo.png';
 
 export function Home() {
   const navigate = useNavigate();
@@ -18,91 +20,150 @@ export function Home() {
   return (
     <div style={{ paddingBottom: 100 }} className="page-enter">
 
-      {/* Header — mobile only (desktop uses sidebar) */}
-      <div className="mobile-only-header" style={{ alignItems: 'center', justifyContent: 'space-between',
-        padding: '52px 20px 12px' }}>
-        <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: -0.5 }}>
-          屁<span style={{ color: '#A78BFA' }}>TCG</span>
-        </span>
+      {/* Mobile Header */}
+      <div className="mobile-only-header" style={{
+        alignItems: 'center', justifyContent: 'space-between',
+        padding: '52px 20px 16px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <img src={appLogo} alt="屁TCG" style={{
+            width: 36, height: 36, borderRadius: 10,
+            boxShadow: '0 0 12px rgba(139,92,246,0.5)',
+          }} />
+          <span style={{ fontSize: 22, fontWeight: 900, letterSpacing: -0.5 }}>
+            <span style={{ color: '#fff' }}>屁</span>
+            <span style={{ color: '#A78BFA' }}>TCG</span>
+          </span>
+        </div>
         {user ? (
           <button onClick={() => navigate('/profile')} style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
             borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.2)',
-            color: '#A78BFA' }}>
+            background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
+            color: '#A78BFA', backdropFilter: 'blur(8px)',
+            boxShadow: '0 0 12px rgba(139,92,246,0.15)',
+          }}>
             💰 NT${user.wallet.toLocaleString()}
           </button>
         ) : (
           <button onClick={() => navigate('/login')} style={{
-            padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+            padding: '7px 18px', borderRadius: 20, fontSize: 12, fontWeight: 800,
             color: '#fff', cursor: 'pointer', border: 'none',
-            background: 'linear-gradient(135deg,#7C3AED,#6D28D9)' }}>
+            background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+            boxShadow: '0 0 16px rgba(139,92,246,0.4)',
+          }}>
             登入
           </button>
         )}
       </div>
 
-      {/* Banner */}
-      <div style={{ margin: '0 16px', borderRadius: 20, overflow: 'hidden', position: 'relative',
-        height: 148, background: 'linear-gradient(135deg,#1E1040 0%,#2A1060 55%,#160B35 100%)' }}>
-        <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: 160, height: 160,
-          borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.55) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-20%', left: '-5%', width: 120, height: 120,
-          borderRadius: '50%', background: 'radial-gradient(circle, rgba(79,70,229,0.35) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column',
-          justifyContent: 'center', padding: '0 20px' }}>
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
-            color: 'rgba(196,181,253,0.65)', marginBottom: 6 }}>台灣最屁的卡牌交易平台</p>
-          <h2 style={{ fontSize: 20, fontWeight: 900, color: '#fff', lineHeight: 1.3, marginBottom: 14 }}>
-            買你想要的每一張卡
+      {/* Hero Banner */}
+      <div style={{
+        margin: '0 16px', borderRadius: 24, overflow: 'hidden',
+        position: 'relative', height: 200, background: '#0d0a1f',
+        boxShadow: '0 8px 32px rgba(139,92,246,0.2), 0 2px 8px rgba(0,0,0,0.5)',
+      }}>
+        <img src={heroBanner} alt="" aria-hidden style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          objectFit: 'cover', objectPosition: 'center 35%', opacity: 0.75,
+        }} />
+        {/* Gradient overlay */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'linear-gradient(135deg, rgba(10,5,30,0.82) 0%, rgba(20,10,50,0.45) 50%, rgba(8,4,20,0.70) 100%)',
+        }} />
+        {/* Glow edges */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          boxShadow: 'inset 0 0 40px rgba(139,92,246,0.15)',
+        }} />
+        {/* Content */}
+        <div style={{
+          position: 'relative', height: '100%', display: 'flex',
+          flexDirection: 'column', justifyContent: 'center', padding: '0 24px',
+        }}>
+          <p style={{
+            fontSize: 9, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase',
+            color: 'rgba(167,139,250,0.8)', marginBottom: 8,
+          }}>台灣最屁的卡牌交易平台</p>
+          <h2 style={{
+            fontSize: 26, fontWeight: 900, color: '#fff', lineHeight: 1.2,
+            marginBottom: 16, letterSpacing: -0.5,
+            textShadow: '0 0 30px rgba(167,139,250,0.4)',
+          }}>
+            買你想要的<br />每一張卡
           </h2>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => navigate('/market?game=yugioh')} style={{
-              padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.3)', color: '#EAB308' }}>
-              ⚔️ 遊戲王
-            </button>
+              padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 800, cursor: 'pointer',
+              background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)',
+              color: '#FBBF24', backdropFilter: 'blur(8px)',
+            }}>⚔️ 遊戲王</button>
             <button onClick={() => navigate('/market?game=pokemon')} style={{
-              padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#F87171' }}>
-              ⚡ 寶可夢
-            </button>
+              padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 800, cursor: 'pointer',
+              background: 'rgba(244,114,182,0.12)', border: '1px solid rgba(244,114,182,0.35)',
+              color: '#F472B6', backdropFilter: 'blur(8px)',
+            }}>⚡ 寶可夢</button>
           </div>
         </div>
       </div>
 
-      {/* Quick actions */}
+      {/* Quick Actions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
         {[
-          { icon: '🛒', label: '瀏覽市場', sub: '找你要的卡', path: '/market', color: 'rgba(124,58,237,0.15)' },
-          { icon: '📋', label: '我的訂單', sub: '購買記錄', path: '/orders', color: 'rgba(16,185,129,0.12)' },
+          {
+            icon: '🛒', label: '瀏覽市場', sub: '探索卡牌商品',
+            path: '/market',
+            gradient: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(109,40,217,0.08))',
+            border: 'rgba(139,92,246,0.2)',
+            glow: 'rgba(139,92,246,0.12)',
+          },
+          {
+            icon: '📋', label: '我的訂單', sub: '購買記錄',
+            path: '/orders',
+            gradient: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06))',
+            border: 'rgba(16,185,129,0.18)',
+            glow: 'rgba(16,185,129,0.1)',
+          },
         ].map(item => (
           <button key={item.path} onClick={() => navigate(item.path)} style={{
-            borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', gap: 12,
-            background: '#111124', border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer',
-            textAlign: 'left' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 18, background: item.color, flexShrink: 0 }}>
+            borderRadius: 20, padding: '18px 16px', display: 'flex', alignItems: 'center', gap: 12,
+            background: item.gradient, border: `1px solid ${item.border}`,
+            cursor: 'pointer', textAlign: 'left',
+            backdropFilter: 'blur(12px)',
+            boxShadow: `0 4px 20px ${item.glow}`,
+            transition: 'all 0.15s ease',
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 14, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', fontSize: 20,
+              background: 'rgba(255,255,255,0.06)', flexShrink: 0,
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}>
               {item.icon}
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#F1F5F9', marginBottom: 2 }}>{item.label}</p>
+              <p style={{ fontSize: 13, fontWeight: 800, color: '#F1F5F9', marginBottom: 2 }}>{item.label}</p>
               <p style={{ fontSize: 11, color: '#64748B' }}>{item.sub}</p>
             </div>
           </button>
         ))}
       </div>
 
-      {/* Listings */}
-      <div style={{ padding: '20px 16px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#E2E8F0' }}>最新上架</span>
-          <button onClick={() => navigate('/market')}
-            style={{ fontSize: 12, fontWeight: 600, color: '#A78BFA', background: 'none', border: 'none', cursor: 'pointer' }}>
+      {/* Latest Listings */}
+      <div style={{ padding: '24px 16px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 3, height: 18, borderRadius: 2, background: 'linear-gradient(to bottom, #A78BFA, #6D28D9)' }} />
+            <span style={{ fontSize: 16, fontWeight: 800, color: '#F1F5F9', letterSpacing: -0.3 }}>最新上架</span>
+          </div>
+          <button onClick={() => navigate('/market')} style={{
+            fontSize: 12, fontWeight: 700, color: '#8B5CF6', background: 'none',
+            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2,
+          }}>
             全部 →
           </button>
         </div>
-
         <CardGrid listings={listings} loading={loading} limit={6}
           emptyText="尚無商品" emptySubText="店長正在上架中，請稍候" />
       </div>

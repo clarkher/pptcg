@@ -5,16 +5,25 @@ import { useAuthStore } from '../stores/authStore';
 
 function NavRow({ icon, label, sub, onClick }: { icon: string; label: string; sub: string; onClick: () => void }) {
   return (
-    <button onClick={onClick}
-      className="w-full rounded-2xl p-4 flex items-center gap-3 active:scale-98 transition-transform"
-      style={{ background: '#111124', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
-        style={{ background: 'rgba(167,139,250,0.1)' }}>{icon}</div>
-      <div className="flex-1 text-left">
-        <p className="text-sm font-semibold text-slate-100">{label}</p>
-        <p className="text-xs text-slate-500 mt-0.5">{sub}</p>
+    <button onClick={onClick} style={{
+      width: '100%', borderRadius: 18, padding: '16px',
+      display: 'flex', alignItems: 'center', gap: 14,
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      backdropFilter: 'blur(12px)',
+      cursor: 'pointer', textAlign: 'left',
+      transition: 'all 0.15s',
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 14, display: 'flex',
+        alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
+        background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.18)',
+      }}>{icon}</div>
+      <div style={{ flex: 1 }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: '#F1F5F9', marginBottom: 2 }}>{label}</p>
+        <p style={{ fontSize: 12, color: '#64748B' }}>{sub}</p>
       </div>
-      <span className="text-slate-600 text-sm">›</span>
+      <span style={{ color: '#475569', fontSize: 16, fontWeight: 300 }}>›</span>
     </button>
   );
 }
@@ -31,51 +40,88 @@ export function Profile() {
   if (!user) return null;
 
   return (
-    <div className="pb-28 page-enter">
+    <div style={{ paddingBottom: 112 }} className="page-enter">
       <Header title="我的" />
 
-      <div className="px-4 pt-2 space-y-4">
-        {/* User hero card */}
-        <div className="rounded-3xl p-5 relative overflow-hidden"
-          style={{ background: 'linear-gradient(135deg,#1E1040,#2D1B69,#1A0F3D)' }}>
-          {/* Orbs */}
-          <div className="absolute top-0 right-0 w-28 h-28 pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(124,58,237,0.4) 0%, transparent 70%)', transform: 'translate(20%,-20%)' }} />
+      <div style={{ padding: '8px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-          <div className="relative z-10">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-black text-white"
-                style={{ background: 'linear-gradient(135deg,#7C3AED,#4F46E5)', boxShadow: '0 0 20px rgba(124,58,237,0.5)' }}>
-                {user.username[0].toUpperCase()}
+        {/* User hero card */}
+        <div style={{
+          borderRadius: 24, padding: '24px', position: 'relative', overflow: 'hidden',
+          background: 'linear-gradient(135deg, rgba(88,28,220,0.25) 0%, rgba(15,10,40,0.8) 60%, rgba(6,182,212,0.08) 100%)',
+          border: '1px solid rgba(139,92,246,0.25)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 40px rgba(88,28,220,0.2), inset 0 1px 0 rgba(255,255,255,0.08)',
+        }}>
+          {/* Orb decoration */}
+          <div style={{
+            position: 'absolute', top: -30, right: -30, width: 120, height: 120,
+            borderRadius: '50%', pointerEvents: 'none',
+            background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 70%)',
+          }} />
+          <div style={{
+            position: 'absolute', bottom: -20, left: 20, width: 80, height: 80,
+            borderRadius: '50%', pointerEvents: 'none',
+            background: 'radial-gradient(circle, rgba(34,211,238,0.15) 0%, transparent 70%)',
+          }} />
+
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            {/* Avatar + name */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+              <div style={{ position: 'relative' }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: 20, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  fontSize: 28, fontWeight: 900, color: '#fff',
+                  background: 'linear-gradient(135deg, #7C3AED, #4F46E5)',
+                  boxShadow: '0 0 24px rgba(124,58,237,0.6)',
+                }}>
+                  {user.username[0].toUpperCase()}
+                </div>
+                <div style={{
+                  position: 'absolute', inset: -3, borderRadius: 23,
+                  background: 'conic-gradient(#A78BFA, #22D3EE, #A78BFA)',
+                  zIndex: -1, opacity: 0.6,
+                }} />
               </div>
               <div>
-                <p className="text-xl font-black text-white">{user.username}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{user.email}</p>
+                <p style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: -0.5 }}>{user.username}</p>
+                <p style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{user.email}</p>
               </div>
             </div>
-            <div className="rounded-2xl p-4 flex items-center justify-between"
-              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(167,139,250,0.15)' }}>
+
+            {/* Wallet */}
+            <div style={{
+              borderRadius: 16, padding: '16px 20px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(167,139,250,0.15)',
+            }}>
               <div>
-                <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">帳戶餘額</p>
-                <p className="text-3xl font-black" style={{ color: '#A78BFA' }}>
-                  NT$<span>{user.wallet.toLocaleString()}</span>
+                <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: '#64748B', marginBottom: 6 }}>帳戶餘額</p>
+                <p style={{ fontSize: 32, fontWeight: 900, lineHeight: 1,
+                  background: 'linear-gradient(135deg, #A78BFA, #7C3AED)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  NT${user.wallet.toLocaleString()}
                 </p>
               </div>
-              <span className="text-4xl">💰</span>
+              <div style={{ fontSize: 36, opacity: 0.8 }}>💰</div>
             </div>
           </div>
         </div>
 
-        {/* Menu items */}
-        <div className="space-y-2">
+        {/* Menu */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <NavRow icon="🛒" label="瀏覽市場" sub="探索所有卡牌商品" onClick={() => navigate('/market')} />
           <NavRow icon="📋" label="我的訂單" sub="查看購買記錄與狀態" onClick={() => navigate('/orders')} />
         </div>
 
         {/* Logout */}
-        <button onClick={() => { logout(); navigate('/'); }}
-          className="w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity active:opacity-70"
-          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: '#F87171' }}>
+        <button onClick={() => { logout(); navigate('/'); }} style={{
+          width: '100%', padding: '14px', borderRadius: 16, fontWeight: 700, fontSize: 14,
+          cursor: 'pointer', transition: 'all 0.15s',
+          background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.18)',
+          color: '#F87171', backdropFilter: 'blur(8px)',
+        }}>
           登出
         </button>
       </div>
