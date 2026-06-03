@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import appLogo from '../assets/app-logo.png';
 
 const NAV = [
   { path: '/', label: '首頁', exact: true, icon: HomeIcon },
@@ -9,21 +10,21 @@ const NAV = [
 ];
 
 function HomeIcon() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
     <polyline points="9 22 9 12 15 12 15 22"/>
   </svg>;
 }
 function MarketIcon() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
     <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.95-1.57l1.65-8.42H6"/>
   </svg>;
 }
 function OrderIcon() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
     <polyline points="14 2 14 8 20 8"/>
@@ -32,7 +33,7 @@ function OrderIcon() {
   </svg>;
 }
 function ProfileIcon() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
     <circle cx="12" cy="7" r="4"/>
@@ -60,84 +61,231 @@ export function AppShell({ children }: Props) {
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
 
-      {/* ── Desktop Sidebar (lg+) ─────────────────── */}
+      {/* ── Desktop Sidebar ─────────── */}
       <aside className="lg-sidebar" style={{
-        width: 220,
-        flexShrink: 0,
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
-        flexDirection: 'column',
-        padding: '32px 16px',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-        background: '#0A0A18',
+        width: 228, flexShrink: 0,
+        position: 'sticky', top: 0, height: '100vh',
+        flexDirection: 'column', padding: '28px 14px',
+        borderRight: '1px solid rgba(167,139,250,0.08)',
+        background: 'rgba(6,6,15,0.92)',
+        backdropFilter: 'blur(32px)',
+        WebkitBackdropFilter: 'blur(32px)',
+        boxShadow: '4px 0 40px rgba(0,0,0,0.4), inset -1px 0 0 rgba(167,139,250,0.06)',
       }}>
-        {/* Logo */}
-        <div style={{ padding: '0 12px 32px' }}>
-          <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', cursor: 'pointer' }}
-            onClick={() => navigate('/')}>
-            屁<span style={{ color: '#A78BFA' }}>TCG</span>
-          </span>
+
+        {/* Ambient background glow */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          pointerEvents: 'none', overflow: 'hidden', borderRadius: 0,
+        }}>
+          <div style={{
+            position: 'absolute', top: -60, left: -40, width: 200, height: 200,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)',
+          }} />
+          <div style={{
+            position: 'absolute', bottom: 40, right: -60, width: 180, height: 180,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(34,211,238,0.07) 0%, transparent 70%)',
+          }} />
         </div>
 
-        {/* Nav items */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+        {/* Logo */}
+        <div
+          style={{
+            padding: '4px 10px 32px', display: 'flex', alignItems: 'center', gap: 10,
+            cursor: 'pointer', position: 'relative', zIndex: 1,
+          }}
+          onClick={() => navigate('/')}
+        >
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            {/* Glow ring behind logo */}
+            <div style={{
+              position: 'absolute', inset: -3, borderRadius: 15,
+              background: 'linear-gradient(135deg, #8B5CF6, #22D3EE)',
+              opacity: 0.5,
+              filter: 'blur(6px)',
+              zIndex: 0,
+            }} />
+            <div style={{
+              position: 'absolute', inset: -1, borderRadius: 13,
+              background: 'linear-gradient(135deg, #8B5CF6, #22D3EE)',
+              opacity: 0.6,
+              zIndex: 1,
+            }} />
+            <img
+              src={appLogo}
+              alt="屁TCG"
+              style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                position: 'relative', zIndex: 2,
+                boxShadow: '0 0 16px rgba(139,92,246,0.5)',
+              }}
+            />
+          </div>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: -0.5, textShadow: '0 0 20px rgba(167,139,250,0.4)' }}>
+              屁<span style={{
+                color: '#A78BFA',
+                textShadow: '0 0 12px rgba(167,139,250,0.8), 0 0 24px rgba(167,139,250,0.4)',
+              }}>TCG</span>
+            </span>
+            <div style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: 2,
+              color: '#22D3EE', opacity: 0.7, marginTop: -2,
+              textTransform: 'uppercase',
+              textShadow: '0 0 8px rgba(34,211,238,0.6)',
+            }}>
+              CARD MARKET
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{
+          height: 1, marginBottom: 16, marginLeft: 10, marginRight: 10,
+          background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.2), transparent)',
+          position: 'relative', zIndex: 1,
+        }} />
+
+        {/* Nav */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1, position: 'relative', zIndex: 1 }}>
           {NAV.map(item => {
             const active = isActive(item);
             const Icon = item.icon;
             return (
-              <button key={item.path} onClick={() => goTo(item.path)} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '10px 14px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                fontSize: 14, fontWeight: active ? 700 : 500, textAlign: 'left',
-                background: active ? 'rgba(167,139,250,0.12)' : 'transparent',
-                color: active ? '#A78BFA' : '#64748B',
-                transition: 'all 0.15s',
-              }}>
-                <Icon />
-                {item.label}
+              <button
+                key={item.path}
+                onClick={() => goTo(item.path)}
+                className="sidebar-nav-item"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '11px 14px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                  fontSize: 14, fontWeight: active ? 700 : 500, textAlign: 'left',
+                  background: active
+                    ? 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(139,92,246,0.08))'
+                    : 'transparent',
+                  color: active ? '#A78BFA' : '#64748B',
+                  transition: 'all 0.2s',
+                  boxShadow: active
+                    ? 'inset 0 0 0 1px rgba(139,92,246,0.3), 0 0 16px rgba(139,92,246,0.1)'
+                    : 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Active left accent bar */}
+                {active && (
+                  <div style={{
+                    position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3,
+                    borderRadius: '0 3px 3px 0',
+                    background: 'linear-gradient(180deg, #A78BFA, #22D3EE)',
+                    boxShadow: '0 0 8px rgba(167,139,250,0.8)',
+                  }} />
+                )}
+                <span style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+                  background: active
+                    ? 'rgba(167,139,250,0.15)'
+                    : 'rgba(255,255,255,0.03)',
+                  transition: 'all 0.2s',
+                  filter: active ? 'drop-shadow(0 0 6px rgba(167,139,250,0.6))' : 'none',
+                }}>
+                  <Icon />
+                </span>
+                <span>{item.label}</span>
+                {active && (
+                  <div style={{
+                    marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%',
+                    background: '#A78BFA',
+                    boxShadow: '0 0 8px #A78BFA, 0 0 16px rgba(167,139,250,0.5)',
+                    animation: 'pulse-dot 2s ease-in-out infinite',
+                  }} />
+                )}
               </button>
             );
           })}
         </nav>
 
-        {/* User info / Login */}
-        {user ? (
-          <div style={{
-            padding: '14px', borderRadius: 14,
-            background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.12)',
-          }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#F1F5F9', marginBottom: 4 }}>
-              {user.username}
-            </p>
-            <p style={{ fontSize: 12, color: '#A78BFA', fontWeight: 700 }}>
-              💰 NT${user.wallet.toLocaleString()}
-            </p>
-          </div>
-        ) : (
-          <button onClick={() => navigate('/login')} style={{
-            width: '100%', padding: '12px', borderRadius: 14, border: 'none', cursor: 'pointer',
-            fontSize: 14, fontWeight: 700, color: '#fff',
-            background: 'linear-gradient(135deg,#7C3AED,#6D28D9)',
-          }}>
-            登入 / 註冊
-          </button>
-        )}
+        {/* Divider */}
+        <div style={{
+          height: 1, margin: '16px 10px 16px',
+          background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.15), transparent)',
+          position: 'relative', zIndex: 1,
+        }} />
+
+        {/* User info */}
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {user ? (
+            <div style={{
+              padding: '14px 16px', borderRadius: 18,
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(34,211,238,0.04))',
+              border: '1px solid rgba(139,92,246,0.2)',
+              boxShadow: '0 0 20px rgba(139,92,246,0.08), inset 0 1px 0 rgba(255,255,255,0.05)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                {/* Avatar */}
+                <div style={{
+                  width: 34, height: 34, borderRadius: 11, flexShrink: 0,
+                  background: 'linear-gradient(135deg, #7C3AED, #4F46E5)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, fontWeight: 900, color: '#fff',
+                  boxShadow: '0 0 12px rgba(124,58,237,0.5), inset 0 1px 0 rgba(255,255,255,0.2)',
+                }}>
+                  {user.username[0].toUpperCase()}
+                </div>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#F1F5F9', lineHeight: 1 }}>{user.username}</p>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: '#22D3EE', opacity: 0.7, marginTop: 3, letterSpacing: 0.5 }}>PLAYER</p>
+                </div>
+              </div>
+              {/* Wallet */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 10px', borderRadius: 10,
+                background: 'rgba(0,0,0,0.2)',
+                border: '1px solid rgba(167,139,250,0.12)',
+              }}>
+                <span style={{ fontSize: 14 }}>💰</span>
+                <span style={{
+                  fontSize: 15, fontWeight: 900,
+                  background: 'linear-gradient(135deg, #A78BFA, #22D3EE)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                }}>
+                  NT${user.wallet.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => navigate('/login')} style={{
+              width: '100%', padding: '13px', borderRadius: 16, border: 'none', cursor: 'pointer',
+              fontSize: 14, fontWeight: 800, color: '#fff',
+              background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+              boxShadow: '0 0 24px rgba(124,58,237,0.4), 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+              transition: 'all 0.2s',
+              letterSpacing: 0.5,
+            }}>
+              登入 / 註冊
+            </button>
+          )}
+        </div>
       </aside>
 
-      {/* ── Main content ─────────────────────────── */}
+      {/* ── Main content ─────────────── */}
       <main style={{ flex: 1, minWidth: 0, position: 'relative' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           {children}
         </div>
       </main>
 
-      {/* ── Mobile Bottom Nav (< lg) ──────────────── */}
+      {/* ── Mobile Bottom Nav ──────── */}
       <nav className="mobile-bottom-nav" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-        background: 'rgba(8,8,18,0.95)',
-        backdropFilter: 'blur(24px)',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(6,6,15,0.92)',
+        backdropFilter: 'blur(28px)',
+        WebkitBackdropFilter: 'blur(28px)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
         <div style={{ display: 'flex', maxWidth: 430, margin: '0 auto' }}>
           {NAV.map(item => {
@@ -150,12 +298,15 @@ export function AppShell({ children }: Props) {
                 background: 'transparent', color: active ? '#A78BFA' : '#475569',
                 transition: 'color 0.15s',
               }}>
-                <Icon />
-                <span style={{ fontSize: 10, fontWeight: 600 }}>{item.label}</span>
                 <div style={{
-                  width: 16, height: 2, borderRadius: 2,
-                  background: active ? '#A78BFA' : 'transparent',
-                }} />
+                  width: 32, height: 32, borderRadius: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
+                  transition: 'background 0.15s',
+                }}>
+                  <Icon />
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 600 }}>{item.label}</span>
               </button>
             );
           })}

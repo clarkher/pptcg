@@ -6,9 +6,10 @@ import type { Listing } from '../types';
 import { GameBadge } from '../components/GameBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useAuthStore } from '../stores/authStore';
+import cardPlaceholder from '../assets/card-placeholder.png';
 
 const COND_LABEL: Record<string, string> = { NM: '近全新', LP: '輕微磨損', MP: '中度磨損', HP: '重度磨損' };
-const COND_COLOR: Record<string, string> = { NM: '#4ADE80', LP: '#60A5FA', MP: '#FBBF24', HP: '#F87171' };
+const COND_COLOR: Record<string, string> = { NM: '#34D399', LP: '#60A5FA', MP: '#FBBF24', HP: '#F87171' };
 
 export function ListingDetail() {
   const { id } = useParams<{ id: string }>();
@@ -43,137 +44,219 @@ export function ListingDetail() {
     }
   };
 
-  if (loading) return <div className="pt-20"><LoadingSpinner /></div>;
+  if (loading) return <div style={{ paddingTop: 80 }}><LoadingSpinner /></div>;
   if (!listing) return (
-    <div className="flex flex-col items-center justify-center min-h-dvh text-center p-8">
-      <div className="text-5xl mb-4 opacity-30">❓</div>
-      <p className="text-slate-400 font-semibold">找不到此商品</p>
-      <button onClick={() => navigate(-1)} className="mt-4 text-violet-400 text-sm font-medium">← 返回</button>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', textAlign: 'center', padding: 32 }}>
+      <div style={{ fontSize: 48, opacity: 0.2, marginBottom: 16 }}>❓</div>
+      <p style={{ color: '#94A3B8', fontWeight: 600, marginBottom: 12 }}>找不到此商品</p>
+      <button onClick={() => navigate(-1)} style={{ color: '#8B5CF6', fontSize: 14, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>← 返回</button>
     </div>
   );
 
   const condColor = COND_COLOR[listing.condition] ?? COND_COLOR['NM'];
 
   return (
-    <div className="pb-32 page-enter" style={{ background: '#0A0A14' }}>
+    <div style={{ paddingBottom: 128 }} className="page-enter">
+
       {/* Back nav */}
-      <div className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3.5"
-        style={{ background: 'rgba(10,10,20,0.9)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <button onClick={() => navigate(-1)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 active:scale-90 transition-transform"
-          style={{ background: 'rgba(255,255,255,0.05)' }}>←</button>
-        <p className="text-sm font-bold text-slate-100 truncate flex-1">{listing.cardName}</p>
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 40,
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '48px 16px 12px',
+        background: 'rgba(6,6,15,0.88)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+      }}>
+        <button onClick={() => navigate(-1)} style={{
+          width: 34, height: 34, borderRadius: 12, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+          color: '#94A3B8', cursor: 'pointer', fontSize: 16,
+        }}>←</button>
+        <p style={{ fontSize: 15, fontWeight: 700, color: '#F1F5F9', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {listing.cardName}
+        </p>
       </div>
 
       {/* Card image hero */}
-      <div className="relative flex items-center justify-center py-8 px-6"
-        style={{ background: 'radial-gradient(ellipse at center, #1E1040 0%, #0A0A14 70%)' }}>
-        <div className="absolute inset-0 opacity-10 pointer-events-none"
-          style={{ background: `radial-gradient(ellipse at center, ${condColor} 0%, transparent 60%)` }} />
-        {listing.cardImage
-          ? <img src={listing.cardImage} alt={listing.cardName}
-              className="relative z-10 max-h-72 object-contain drop-shadow-2xl"
-              style={{ filter: 'drop-shadow(0 0 24px rgba(167,139,250,0.3))' }} />
-          : <div className="text-8xl opacity-20 relative z-10">🃏</div>
-        }
+      <div style={{
+        position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '40px 24px',
+        background: `radial-gradient(ellipse at center, rgba(88,28,220,0.18) 0%, rgba(6,6,15,0.9) 65%)`,
+        overflow: 'hidden',
+      }}>
+        {/* Animated glow behind card */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: `radial-gradient(ellipse at center, ${condColor}20 0%, transparent 60%)`,
+        }} />
+        <div style={{
+          position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%,-50%)',
+          width: 200, height: 200, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+
+        {listing.cardImage ? (
+          <img
+            src={listing.cardImage}
+            alt={listing.cardName}
+            style={{
+              position: 'relative', zIndex: 2, maxHeight: 300, objectFit: 'contain',
+              filter: `drop-shadow(0 0 32px rgba(167,139,250,0.35)) drop-shadow(0 12px 24px rgba(0,0,0,0.6))`,
+              borderRadius: 8,
+            }}
+            onError={(e) => { (e.target as HTMLImageElement).src = cardPlaceholder; }}
+          />
+        ) : (
+          <img src={cardPlaceholder} alt="card" style={{
+            position: 'relative', zIndex: 2, maxHeight: 300, objectFit: 'contain',
+            filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.5))',
+            borderRadius: 8,
+          }} />
+        )}
       </div>
 
-      <div className="px-4 space-y-4">
+      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
         {/* Title + badges */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
             <GameBadge game={listing.cardGame} size="md" />
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ color: condColor, background: `${condColor}18`, border: `1px solid ${condColor}40` }}>
+            <span style={{
+              fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20,
+              color: condColor, background: `${condColor}18`, border: `1px solid ${condColor}44`,
+            }}>
               {listing.condition} · {COND_LABEL[listing.condition]}
             </span>
           </div>
-          <h2 className="text-xl font-black text-white leading-tight">{listing.cardName}</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            賣家：<span style={{ color: '#A78BFA' }}>{listing.seller.username}</span>
+          <h2 style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1.2, letterSpacing: -0.4 }}>
+            {listing.cardName}
+          </h2>
+          <p style={{ fontSize: 13, color: '#475569', marginTop: 6 }}>
+            賣家：<span style={{ color: '#A78BFA', fontWeight: 600 }}>{listing.seller.username}</span>
           </p>
         </div>
 
         {/* Description */}
         {listing.description && (
-          <div className="rounded-2xl p-4"
-            style={{ background: '#111124', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">商品說明</p>
-            <p className="text-sm text-slate-300 leading-relaxed">{listing.description}</p>
+          <div style={{
+            borderRadius: 18, padding: '16px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(12px)',
+          }}>
+            <p style={{ fontSize: 10, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>商品說明</p>
+            <p style={{ fontSize: 14, color: '#CBD5E1', lineHeight: 1.6 }}>{listing.description}</p>
           </div>
         )}
 
         {/* Price card */}
-        <div className="rounded-2xl p-4 flex items-center justify-between"
-          style={{ background: 'linear-gradient(135deg,#1E1040,#13132A)', border: '1px solid rgba(167,139,250,0.15)' }}>
+        <div style={{
+          borderRadius: 20, padding: '20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'linear-gradient(135deg, rgba(88,28,220,0.15) 0%, rgba(15,10,40,0.6) 100%)',
+          border: '1px solid rgba(139,92,246,0.2)',
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 4px 24px rgba(88,28,220,0.15)',
+        }}>
           <div>
-            <p className="text-xs text-slate-500 mb-1 font-semibold uppercase tracking-wide">售價</p>
-            <p className="text-3xl font-black" style={{ color: '#A78BFA' }}>
+            <p style={{ fontSize: 10, color: '#64748B', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 6 }}>售價</p>
+            <p style={{
+              fontSize: 36, fontWeight: 900, lineHeight: 1,
+              background: 'linear-gradient(135deg, #A78BFA, #7C3AED)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
               NT${listing.price.toLocaleString()}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-slate-500 mb-1 font-semibold uppercase tracking-wide">數量</p>
-            <p className="text-2xl font-black text-slate-200">×{listing.quantity}</p>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: 10, color: '#64748B', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 6 }}>數量</p>
+            <p style={{ fontSize: 28, fontWeight: 900, color: '#E2E8F0' }}>×{listing.quantity}</p>
           </div>
         </div>
 
         {/* Error */}
         {error && (
-          <div className="rounded-xl p-3 text-sm text-center font-medium"
-            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171' }}>
+          <div style={{
+            borderRadius: 14, padding: '12px 16px', textAlign: 'center',
+            fontSize: 14, fontWeight: 600, color: '#F87171',
+            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+          }}>
             {error}
           </div>
         )}
 
         {/* Success */}
         {success && (
-          <div className="rounded-2xl p-5 text-center"
-            style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)' }}>
-            <div className="text-3xl mb-2">🎉</div>
-            <p className="font-bold text-green-400 text-lg">購買成功！</p>
-            <button onClick={() => navigate('/orders')}
-              className="mt-3 text-sm font-semibold" style={{ color: '#A78BFA' }}>
-              查看訂單 →
-            </button>
+          <div style={{
+            borderRadius: 20, padding: '24px', textAlign: 'center',
+            background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.2)',
+            backdropFilter: 'blur(12px)',
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 10 }}>🎉</div>
+            <p style={{ fontWeight: 800, color: '#34D399', fontSize: 18, marginBottom: 12 }}>購買成功！</p>
+            <button onClick={() => navigate('/orders')} style={{
+              fontSize: 13, fontWeight: 700, color: '#A78BFA',
+              background: 'none', border: 'none', cursor: 'pointer',
+            }}>查看訂單 →</button>
           </div>
         )}
       </div>
 
       {/* Buy bar */}
       {!success && (
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 py-4"
-          style={{ background: 'rgba(10,10,20,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{
+          position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+          width: '100%', maxWidth: 430, padding: '16px 16px',
+          background: 'rgba(6,6,15,0.95)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+        }}>
           {listing.status !== 'active' ? (
-            <div className="w-full py-3.5 rounded-xl text-center text-slate-500 font-bold text-sm"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{
+              width: '100%', padding: '14px', borderRadius: 16, textAlign: 'center',
+              color: '#475569', fontWeight: 700, fontSize: 14,
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+            }}>
               此商品已售出
             </div>
           ) : user ? (
-            <div className="flex items-center gap-3">
-              <div className="text-right shrink-0">
-                <p className="text-[10px] text-slate-500">我的餘額</p>
-                <p className="text-sm font-bold text-slate-300">NT${user.wallet.toLocaleString()}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <p style={{ fontSize: 10, color: '#475569', fontWeight: 600 }}>我的餘額</p>
+                <p style={{ fontSize: 13, fontWeight: 800, color: '#CBD5E1' }}>NT${user.wallet.toLocaleString()}</p>
               </div>
-              <button onClick={handleBuy} disabled={buying || listing.seller.username === user.username}
-                className="flex-1 py-3.5 rounded-xl font-bold text-white text-base transition-opacity active:opacity-80"
+              <button
+                onClick={handleBuy}
+                disabled={buying || listing.seller.username === user.username}
                 style={{
+                  flex: 1, padding: '15px', borderRadius: 16, fontWeight: 800,
+                  fontSize: 15, border: 'none', cursor: listing.seller.username === user.username ? 'not-allowed' : 'pointer',
                   background: listing.seller.username === user.username
-                    ? 'rgba(255,255,255,0.08)'
-                    : 'linear-gradient(135deg,#7C3AED,#6D28D9)',
+                    ? 'rgba(255,255,255,0.06)'
+                    : 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+                  color: listing.seller.username === user.username ? '#475569' : '#fff',
                   opacity: buying ? 0.6 : 1,
-                  boxShadow: listing.seller.username === user.username ? 'none' : '0 4px 24px rgba(124,58,237,0.4)',
-                  color: listing.seller.username === user.username ? '#64748B' : '#fff',
-                }}>
+                  boxShadow: listing.seller.username === user.username
+                    ? 'none' : '0 0 24px rgba(139,92,246,0.4)',
+                  transition: 'opacity 0.15s',
+                }}
+              >
                 {buying ? '購買中...'
                   : listing.seller.username === user.username ? '這是你的商品'
                   : `立即購買 NT$${listing.price.toLocaleString()}`}
               </button>
             </div>
           ) : (
-            <button onClick={() => navigate('/login')}
-              className="w-full py-3.5 rounded-xl font-bold text-white text-base"
-              style={{ background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', boxShadow: '0 4px 24px rgba(124,58,237,0.4)' }}>
+            <button onClick={() => navigate('/login')} style={{
+              width: '100%', padding: '15px', borderRadius: 16, border: 'none',
+              fontWeight: 800, fontSize: 15, color: '#fff', cursor: 'pointer',
+              background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+              boxShadow: '0 0 24px rgba(139,92,246,0.4)',
+            }}>
               登入以購買
             </button>
           )}
