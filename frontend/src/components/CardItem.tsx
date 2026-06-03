@@ -1,61 +1,116 @@
 import { useNavigate } from 'react-router-dom';
 import type { Listing } from '../types';
+import cardPlaceholder from '../assets/card-placeholder.png';
 
 const COND_COLOR: Record<string, string> = {
-  NM: '#4ADE80', LP: '#60A5FA', MP: '#FBBF24', HP: '#F87171',
+  NM: '#34D399', LP: '#60A5FA', MP: '#FBBF24', HP: '#F87171',
 };
-const GAME_STYLE: Record<string, { color: string; bg: string; label: string }> = {
-  yugioh:  { color: '#EAB308', bg: 'rgba(234,179,8,0.12)',  label: '⚔️ 遊戲王' },
-  pokemon: { color: '#F87171', bg: 'rgba(239,68,68,0.12)',  label: '⚡ 寶可夢' },
+const COND_LABEL: Record<string, string> = {
+  NM: 'NM', LP: 'LP', MP: 'MP', HP: 'HP',
+};
+const GAME_STYLE: Record<string, { color: string; bg: string; label: string; glow: string }> = {
+  yugioh:  { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)',  label: '⚔️ 遊戲王', glow: 'rgba(251,191,36,0.25)' },
+  pokemon: { color: '#F472B6', bg: 'rgba(244,114,182,0.12)', label: '⚡ 寶可夢', glow: 'rgba(244,114,182,0.25)' },
 };
 
 export function CardItem({ listing }: { listing: Listing }) {
   const navigate = useNavigate();
-  const condColor = COND_COLOR[listing.condition] ?? '#4ADE80';
+  const condColor = COND_COLOR[listing.condition] ?? '#34D399';
   const game = GAME_STYLE[listing.cardGame] ?? GAME_STYLE['yugioh'];
 
   return (
-    <div onClick={() => navigate(`/listing/${listing.id}`)}
-      className="rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-transform"
-      style={{ background: '#111124', border: '1px solid rgba(255,255,255,0.07)' }}>
-
-      {/* Image */}
-      <div className="relative overflow-hidden bg-[#0A0A1E]" style={{ aspectRatio: '3/4' }}>
+    <div
+      className="card-item"
+      onClick={() => navigate(`/listing/${listing.id}`)}
+    >
+      {/* Image area */}
+      <div style={{ position: 'relative', overflow: 'hidden', aspectRatio: '3/4', background: '#09091a' }}>
         {listing.cardImage ? (
-          <img src={listing.cardImage} alt={listing.cardName}
-            className="w-full h-full object-contain"
+          <img
+            src={listing.cardImage}
+            alt={listing.cardName}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             loading="lazy"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            onError={(e) => {
+              const el = e.target as HTMLImageElement;
+              el.src = cardPlaceholder;
+              el.style.objectFit = 'cover';
+            }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl opacity-10">🃏</div>
+          <img
+            src={cardPlaceholder}
+            alt="card back"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            loading="lazy"
+          />
         )}
-        {/* Condition dot */}
-        <div className="absolute top-2 right-2 w-2 h-2 rounded-full"
-          style={{ background: condColor, boxShadow: `0 0 6px ${condColor}` }} />
-        {/* Bottom fade */}
-        <div className="absolute bottom-0 inset-x-0 h-8 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, #111124, transparent)' }} />
+
+        {/* Holographic overlay */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3,
+          background: 'linear-gradient(135deg, transparent 40%, rgba(139,92,246,0.06) 60%, transparent 80%)',
+        }} />
+
+        {/* Condition badge */}
+        <div style={{
+          position: 'absolute', top: 7, right: 7, zIndex: 4,
+          padding: '2px 7px', borderRadius: 8, fontSize: 10, fontWeight: 800,
+          color: condColor,
+          background: `${condColor}22`,
+          border: `1px solid ${condColor}44`,
+          backdropFilter: 'blur(8px)',
+          boxShadow: `0 0 8px ${condColor}44`,
+        }}>
+          {COND_LABEL[listing.condition] ?? 'NM'}
+        </div>
+
+        {/* Bottom gradient */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, zIndex: 3,
+          background: 'linear-gradient(to top, rgba(9,9,26,0.9), transparent)',
+          pointerEvents: 'none',
+        }} />
       </div>
 
-      {/* Info */}
-      <div className="px-3 pt-2 pb-3">
-        {/* Game tag */}
-        <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold mb-1.5"
-          style={{ color: game.color, background: game.bg }}>
+      {/* Info area */}
+      <div style={{ padding: '10px 12px 12px', position: 'relative', zIndex: 5 }}>
+        {/* Game badge */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center',
+          padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+          marginBottom: 6,
+          color: game.color,
+          background: game.bg,
+          border: `1px solid ${game.color}33`,
+        }}>
           {game.label}
         </div>
-        <p className="text-xs font-semibold text-slate-200 leading-tight line-clamp-2 mb-2">
+
+        {/* Card name */}
+        <p style={{
+          fontSize: 12, fontWeight: 600, color: '#E2E8F0',
+          lineHeight: 1.4, marginBottom: 8,
+          display: '-webkit-box', WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>
           {listing.cardName}
         </p>
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-black" style={{ color: '#A78BFA' }}>
+
+        {/* Price */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{
+            fontSize: 15, fontWeight: 900,
+            background: 'linear-gradient(135deg, #A78BFA, #7C3AED)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>
             NT${listing.price.toLocaleString()}
-          </p>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-            style={{ color: condColor, background: `${condColor}18` }}>
-            {listing.condition}
           </span>
+          {listing.quantity > 1 && (
+            <span style={{ fontSize: 10, color: '#64748B', fontWeight: 600 }}>
+              ×{listing.quantity}
+            </span>
+          )}
         </div>
       </div>
     </div>

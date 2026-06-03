@@ -4,10 +4,10 @@ import { listingsApi } from '../api/listings';
 import type { Listing, Game } from '../types';
 import { CardGrid } from '../components/CardGrid';
 
-const TABS: { label: string; value: Game; emoji: string }[] = [
-  { label: '全部', value: 'all', emoji: '🃏' },
-  { label: '遊戲王', value: 'yugioh', emoji: '⚔️' },
-  { label: '寶可夢', value: 'pokemon', emoji: '⚡' },
+const TABS: { label: string; value: Game; emoji: string; color: string }[] = [
+  { label: '全部', value: 'all', emoji: '🃏', color: '#A78BFA' },
+  { label: '遊戲王', value: 'yugioh', emoji: '⚔️', color: '#FBBF24' },
+  { label: '寶可夢', value: 'pokemon', emoji: '⚡', color: '#F472B6' },
 ];
 
 export function Market() {
@@ -30,44 +30,63 @@ export function Market() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div style={{ paddingBottom: 100 }}>
+    <div style={{ paddingBottom: 100 }} className="page-enter">
 
       {/* Header */}
       <div style={{ padding: '52px 16px 0' }}>
-        <h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 16 }}>卡牌市場</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ width: 3, height: 24, borderRadius: 2, background: 'linear-gradient(to bottom, #A78BFA, #6D28D9)' }} />
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: -0.5 }}>卡牌市場</h1>
+        </div>
 
         {/* Search */}
-        <div style={{ position: 'relative', marginBottom: 12 }}>
-          <svg style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-            width: 16, height: 16, color: '#64748B' }} fill="none" stroke="currentColor"
-            strokeWidth="2" viewBox="0 0 24 24">
+        <div style={{ position: 'relative', marginBottom: 14 }}>
+          <svg style={{
+            position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+            width: 16, height: 16, color: '#6B7280',
+          }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="搜尋卡牌名稱..."
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="搜尋卡牌名稱..."
             style={{
-              width: '100%', paddingLeft: 42, paddingRight: 16, paddingTop: 12, paddingBottom: 12,
-              borderRadius: 14, fontSize: 14, color: '#F1F5F9', outline: 'none',
-              background: '#111124', border: '1px solid rgba(255,255,255,0.08)',
+              width: '100%', paddingLeft: 44, paddingRight: 16, paddingTop: 13, paddingBottom: 13,
+              borderRadius: 16, fontSize: 14, color: '#F1F5F9', outline: 'none',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.09)',
               fontFamily: 'inherit', boxSizing: 'border-box',
+              backdropFilter: 'blur(12px)',
+              transition: 'border-color 0.15s',
             }}
+            onFocus={e => (e.target.style.borderColor = 'rgba(139,92,246,0.45)')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.09)')}
           />
         </div>
 
         {/* Game tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
           {TABS.map(tab => {
             const active = game === tab.value;
             return (
-              <button key={tab.value} onClick={() => {
-                setGame(tab.value);
-                setSearchParams(tab.value !== 'all' ? { game: tab.value } : {});
-              }} style={{
-                flex: 1, padding: '8px 0', borderRadius: 12, fontSize: 13, fontWeight: 700,
-                cursor: 'pointer', transition: 'all 0.15s', border: 'none',
-                background: active ? 'linear-gradient(135deg,#7C3AED,#6D28D9)' : '#111124',
-                color: active ? '#fff' : '#64748B',
-                outline: active ? 'none' : '1px solid rgba(255,255,255,0.06)',
-              }}>
+              <button
+                key={tab.value}
+                onClick={() => {
+                  setGame(tab.value);
+                  setSearchParams(tab.value !== 'all' ? { game: tab.value } : {});
+                }}
+                style={{
+                  flex: 1, padding: '9px 0', borderRadius: 14, fontSize: 12, fontWeight: 800,
+                  cursor: 'pointer', transition: 'all 0.15s', border: 'none',
+                  background: active
+                    ? 'linear-gradient(135deg,#7C3AED,#4F46E5)'
+                    : 'rgba(255,255,255,0.04)',
+                  color: active ? '#fff' : '#64748B',
+                  outline: active ? 'none' : '1px solid rgba(255,255,255,0.07)',
+                  boxShadow: active ? '0 0 20px rgba(124,58,237,0.4)' : 'none',
+                }}
+              >
                 {tab.emoji} {tab.label}
               </button>
             );
@@ -75,7 +94,7 @@ export function Market() {
         </div>
 
         {!loading && (
-          <p style={{ fontSize: 12, color: '#475569', marginBottom: 12, fontWeight: 500 }}>
+          <p style={{ fontSize: 11, color: '#475569', marginBottom: 14, fontWeight: 600, letterSpacing: 0.3 }}>
             共 {listings.length} 件商品
           </p>
         )}

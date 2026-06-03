@@ -10,7 +10,8 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "scrape:pokemon": "ts-node scripts/scrape-pokemon.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

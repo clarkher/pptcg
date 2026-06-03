@@ -1,276 +1,429 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '../../api/admin';
-import { uploadImage } from '../../api/upload';
+import { pokemonApi, type PokemonCard } from '../../api/pokemon';
 import type { Listing } from '../../types';
 
 const CONDITIONS = ['NM', 'LP', 'MP', 'HP'];
-const GAMES = [{ value: 'yugioh', label: '⚔️ 遊戲王' }, { value: 'pokemon', label: '⚡ 寶可夢' }];
+const COND_LABELS: Record<string, string> = { NM: '近全新', LP: '輕微磨損', MP: '中度磨損', HP: '重度磨損' };
+const COND_COLOR: Record<string, string> = { NM: '#4ADE80', LP: '#60A5FA', MP: '#FBBF24', HP: '#F87171' };
+const STATUS_COLOR: Record<string, string> = { active: '#4ADE80', cancelled: '#94A3B8' };
 
-const EMPTY_FORM = {
-  cardId: '', cardName: '', cardGame: 'yugioh', cardImage: '',
-  condition: 'NM', price: '', quantity: '1', description: '',
+const inputStyle = {
+  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 12, padding: '10px 14px', color: '#F1F5F9', fontSize: 14,
+  width: '100%', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const,
 };
+
+type Step = 'search' | 'form';
 
 export function AdminListings() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Listing | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [step, setStep] = useState<Step>('search');
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState('');
-  const [uploadingImg, setUploadingImg] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadListings = () => adminApi.getListings().then(setListings).finally(() => setLoading(false));
-  useEffect(() => { loadListings(); }, []);
+  // Card search state
+  const [cardQ, setCardQ] = useState('');
+  const [cardResults, setCardResults] = useState<PokemonCard[]>([]);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<PokemonCard | null>(null);
+  const [dbStats, setDbStats] = useState<{ total: number; sets: number } | null>(null);
 
-  const handleImageFile = async (file: File) => {
-    setUploadingImg(true);
+  // Form state
+  const [form, setForm] = useState({
+    condition: 'NM', price: '', quantity: '1', description: '',
+    cardGame: 'pokemon' as 'pokemon' | 'yugioh',
+  });
+
+  useEffect(() => {
+    adminApi.getListings().then(setListings).finally(() => setLoading(false));
+    pokemonApi.stats().then(setDbStats).catch(() => {});
+  }, []);
+
+  const searchCards = useCallback(async (q: string) => {
+    if (!q.trim()) { setCardResults([]); return; }
+    setCardLoading(true);
     try {
-      const url = await uploadImage(file);
-      setForm((f) => ({ ...f, cardImage: url }));
-    } finally {
-      setUploadingImg(false);
-    }
+      const res = await pokemonApi.search(q);
+      setCardResults(res.cards);
+    } finally { setCardLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => searchCards(cardQ), 400);
+    return () => clearTimeout(t);
+  }, [cardQ, searchCards]);
+
+  const openCreate = () => {
+    setEditing(null); setSelectedCard(null); setCardQ(''); setCardResults([]);
+    setForm({ condition: 'NM', price: '', quantity: '1', description: '', cardGame: 'pokemon' });
+    setStep('search'); setShowModal(true);
   };
 
-  const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setShowForm(true); };
   const openEdit = (l: Listing) => {
     setEditing(l);
     setForm({
-      cardId: l.cardId, cardName: l.cardName, cardGame: l.cardGame,
-      cardImage: l.cardImage, condition: l.condition,
-      price: String(l.price), quantity: String(l.quantity),
-      description: l.description || '',
+      condition: l.condition, price: String(l.price),
+      quantity: String(l.quantity), description: l.description || '',
+      cardGame: l.cardGame as 'pokemon' | 'yugioh',
     });
-    setShowForm(true);
+    setSelectedCard(null); setStep('form'); setShowModal(true);
+  };
+
+  const handleSelectCard = (card: PokemonCard) => {
+    setSelectedCard(card);
+    setStep('form');
   };
 
   const handleSave = async () => {
-    if (!form.cardName || !form.price) return;
+    if (!form.price) return;
     setSaving(true);
     try {
-      const data = {
-        ...form,
-        cardGame: form.cardGame as 'yugioh' | 'pokemon',
+      const baseData = {
         condition: form.condition as 'NM' | 'LP' | 'MP' | 'HP',
         price: parseFloat(form.price),
         quantity: parseInt(form.quantity),
+        description: form.description,
       };
+
       if (editing) {
-        const updated = await adminApi.updateListing(editing.id, data);
-        setListings((prev) => prev.map((l) => (l.id === editing.id ? updated : l)));
-      } else {
-        const created = await adminApi.createListing(data);
-        setListings((prev) => [created, ...prev]);
+        const updated = await adminApi.updateListing(editing.id, baseData);
+        setListings(prev => prev.map(l => l.id === editing.id ? updated : l));
+      } else if (selectedCard) {
+        const created = await adminApi.createListing({
+          ...baseData,
+          cardId: selectedCard.id,
+          cardName: selectedCard.name,
+          cardGame: 'pokemon',
+          cardImage: selectedCard.imageLarge || selectedCard.imageSmall,
+        });
+        setListings(prev => [created, ...prev]);
       }
-      setShowForm(false);
-    } finally {
-      setSaving(false);
-    }
+      setShowModal(false);
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('確定要刪除這個商品嗎？')) return;
+    if (!confirm('確定要刪除？')) return;
     await adminApi.deleteListing(id);
-    setListings((prev) => prev.filter((l) => l.id !== id));
+    setListings(prev => prev.filter(l => l.id !== id));
   };
 
-  const handleToggleStatus = async (l: Listing) => {
-    const newStatus = l.status === 'active' ? 'cancelled' : 'active';
-    const updated = await adminApi.updateListing(l.id, { status: newStatus });
-    setListings((prev) => prev.map((x) => (x.id === l.id ? updated : x)));
+  const handleToggle = async (l: Listing) => {
+    const updated = await adminApi.updateListing(l.id, {
+      status: l.status === 'active' ? 'cancelled' : 'active',
+    });
+    setListings(prev => prev.map(x => x.id === l.id ? updated : x));
   };
 
-  const filtered = listings.filter((l) =>
+  const filtered = listings.filter(l =>
     !filter || l.cardName.toLowerCase().includes(filter.toLowerCase())
   );
 
-  const inputCls = "w-full px-3 py-2.5 rounded-xl text-sm text-slate-100 focus:outline-none";
-  const inputStyle = { background: '#0D0D1C', border: '1px solid rgba(255,255,255,0.08)', fontFamily: 'inherit' };
+  const rarityColor = (r: string | null) => {
+    if (!r) return '#94A3B8';
+    if (r.includes('Hyper')) return '#F59E0B';
+    if (r.includes('Secret')) return '#EC4899';
+    if (r.includes('Ultra')) return '#8B5CF6';
+    if (r.includes('Rainbow')) return '#22D3EE';
+    if (r.includes('Rare')) return '#60A5FA';
+    return '#94A3B8';
+  };
 
   return (
-    <div className="space-y-6 page-enter">
-      <div className="flex items-center justify-between">
+    <div className="page-enter" style={{ padding: '0 0 40px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h2 className="text-2xl font-black text-white">商品管理</h2>
-          <p className="text-slate-500 text-sm mt-1">{listings.length} 件商品</p>
+          <h2 style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>商品管理</h2>
+          <p style={{ fontSize: 13, color: '#64748B' }}>
+            {listings.length} 件商品
+            {dbStats && ` · 寶可夢資料庫 ${dbStats.total.toLocaleString()} 張卡 / ${dbStats.sets} 個系列`}
+          </p>
         </div>
-        <button onClick={openCreate}
-          className="px-5 py-2.5 rounded-xl font-bold text-white text-sm"
-          style={{ background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', boxShadow: '0 4px 16px rgba(124,58,237,0.3)' }}>
-          ＋ 新增商品
-        </button>
+        <button onClick={openCreate} style={{
+          padding: '10px 20px', borderRadius: 12, border: 'none', cursor: 'pointer',
+          fontSize: 14, fontWeight: 700, color: '#fff',
+          background: 'linear-gradient(135deg,#7C3AED,#6D28D9)',
+          boxShadow: '0 4px 16px rgba(124,58,237,0.3)',
+        }}>＋ 新增商品</button>
       </div>
 
       {/* Search */}
-      <input value={filter} onChange={(e) => setFilter(e.target.value)}
-        placeholder="搜尋商品名稱..." className={inputCls} style={inputStyle} />
+      <input value={filter} onChange={e => setFilter(e.target.value)}
+        placeholder="搜尋商品名稱..." style={{ ...inputStyle, marginBottom: 16 }} />
 
       {/* Table */}
       {loading ? (
-        <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="skeleton h-16 rounded-xl" />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 72, borderRadius: 12 }} />)}
+        </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ background: '#111124', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                {['圖', '名稱', '遊戲', '品相', '售價', '庫存', '狀態', ''].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((l) => (
-                <tr key={l.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: '#0D0D1C' }}
-                  className="hover:bg-white/[0.02] transition-colors">
-                  <td className="px-4 py-3">
-                    {l.cardImage
-                      ? <img src={l.cardImage} className="w-10 h-14 object-contain rounded-lg" style={{ background: '#0A0A1E' }} />
-                      : <div className="w-10 h-14 rounded-lg flex items-center justify-center text-xl" style={{ background: '#0A0A1E' }}>🃏</div>
-                    }
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-semibold text-slate-100 max-w-[200px] truncate">{l.cardName}</p>
-                  </td>
-                  <td className="px-4 py-3 text-slate-400">
-                    {l.cardGame === 'yugioh' ? '⚔️' : '⚡'} {l.cardGame === 'yugioh' ? '遊戲王' : '寶可夢'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-bold text-xs px-2 py-0.5 rounded-full"
-                      style={{ color: { NM: '#4ADE80', LP: '#60A5FA', MP: '#FBBF24', HP: '#F87171' }[l.condition],
-                        background: 'rgba(255,255,255,0.05)' }}>
-                      {l.condition}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-bold" style={{ color: '#A78BFA' }}>
-                    NT${l.price.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-slate-300 font-semibold">{l.quantity}</td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => handleToggleStatus(l)}
-                      className="px-2 py-1 rounded-lg text-xs font-bold"
-                      style={l.status === 'active'
-                        ? { color: '#4ADE80', background: 'rgba(74,222,128,0.1)' }
-                        : { color: '#94A3B8', background: 'rgba(148,163,184,0.1)' }}>
-                      {l.status === 'active' ? '上架中' : '已下架'}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(l)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 transition-colors"
-                        style={{ background: 'rgba(255,255,255,0.06)' }}>
-                        編輯
-                      </button>
-                      <button onClick={() => handleDelete(l.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-red-400 transition-colors"
-                        style={{ background: 'rgba(239,68,68,0.08)' }}>
-                        刪除
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
+          {filtered.map((l, idx) => (
+            <div key={l.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+              background: idx % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+              borderBottom: idx < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+            }}>
+              {/* Card image */}
+              <div style={{ width: 44, height: 60, borderRadius: 8, overflow: 'hidden',
+                background: '#0A0A1E', flexShrink: 0 }}>
+                {l.cardImage && <img src={l.cardImage} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#F1F5F9', marginBottom: 2,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {l.cardName}
+                </p>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: l.cardGame === 'pokemon' ? '#F87171' : '#EAB308' }}>
+                    {l.cardGame === 'pokemon' ? '⚡ 寶可夢' : '⚔️ 遊戲王'}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: COND_COLOR[l.condition],
+                    padding: '1px 6px', borderRadius: 4, background: `${COND_COLOR[l.condition]}15` }}>
+                    {l.condition} {COND_LABELS[l.condition]}
+                  </span>
+                </div>
+              </div>
+
+              {/* Price / qty */}
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <p style={{ fontSize: 15, fontWeight: 800, color: '#A78BFA' }}>
+                  NT${l.price.toLocaleString()}
+                </p>
+                <p style={{ fontSize: 11, color: '#475569' }}>×{l.quantity}</p>
+              </div>
+
+              {/* Status */}
+              <button onClick={() => handleToggle(l)} style={{
+                padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                fontSize: 11, fontWeight: 700, flexShrink: 0,
+                color: STATUS_COLOR[l.status],
+                background: `${STATUS_COLOR[l.status]}18`,
+              }}>
+                {l.status === 'active' ? '上架中' : '已下架'}
+              </button>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button onClick={() => openEdit(l)} style={{
+                  padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600, color: '#94A3B8',
+                  background: 'rgba(255,255,255,0.06)',
+                }}>編輯</button>
+                <button onClick={() => handleDelete(l.id)} style={{
+                  padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600, color: '#F87171',
+                  background: 'rgba(239,68,68,0.08)',
+                }}>刪除</button>
+              </div>
+            </div>
+          ))}
           {filtered.length === 0 && (
-            <div className="text-center py-12 text-slate-600">
-              {filter ? '找不到相符商品' : '還沒有商品，點上方按鈕新增'}
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#475569', fontSize: 14 }}>
+              {filter ? '找不到相符商品' : '目前沒有商品，點上方按鈕新增'}
             </div>
           )}
         </div>
       )}
 
       {/* Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
-          onClick={(e) => e.target === e.currentTarget && setShowForm(false)}>
-          <div className="w-full max-w-lg rounded-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto"
-            style={{ background: '#111124', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-white">{editing ? '編輯商品' : '新增商品'}</h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-500 text-xl">✕</button>
+      {showModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+        }} onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+          <div style={{
+            width: '100%', maxWidth: step === 'search' ? 720 : 480,
+            maxHeight: '90vh', overflowY: 'auto',
+            borderRadius: 24, padding: 24,
+            background: '#0F0F22', border: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            {/* Modal header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>
+                  {editing ? '編輯商品' : step === 'search' ? '選擇卡牌' : '設定上架資訊'}
+                </h3>
+                {!editing && step === 'form' && selectedCard && (
+                  <button onClick={() => setStep('search')} style={{
+                    fontSize: 12, color: '#A78BFA', background: 'none', border: 'none', cursor: 'pointer', marginTop: 2,
+                  }}>← 重新選卡</button>
+                )}
+              </div>
+              <button onClick={() => setShowModal(false)} style={{
+                fontSize: 20, color: '#475569', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1,
+              }}>✕</button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">卡牌名稱 *</label>
-                <input value={form.cardName} onChange={(e) => setForm({ ...form, cardName: e.target.value })}
-                  placeholder="例：青眼白龍 Blue-Eyes White Dragon" className={inputCls} style={inputStyle} />
-              </div>
+            {/* Step 1: Search card */}
+            {step === 'search' && !editing && (
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Card ID</label>
-                <input value={form.cardId} onChange={(e) => setForm({ ...form, cardId: e.target.value })}
-                  placeholder="例：blue-eyes-001" className={inputCls} style={inputStyle} />
+                <input value={cardQ} onChange={e => setCardQ(e.target.value)}
+                  placeholder="搜尋寶可夢卡牌名稱（中文或英文）..."
+                  style={{ ...inputStyle, marginBottom: 16, fontSize: 15 }}
+                  autoFocus
+                />
+                {!dbStats?.total && (
+                  <div style={{ textAlign: 'center', padding: '20px 0', color: '#64748B', fontSize: 13 }}>
+                    ⏳ 卡牌資料庫爬取中，稍後可用...
+                  </div>
+                )}
+                {cardLoading ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+                    {[0,1,2,3,4,5,6,7].map(i => <div key={i} className="skeleton" style={{ aspectRatio: '3/4', borderRadius: 12 }} />)}
+                  </div>
+                ) : cardResults.length > 0 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+                    {cardResults.map(card => (
+                      <button key={card.id} onClick={() => handleSelectCard(card)} style={{
+                        border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12,
+                        background: 'rgba(255,255,255,0.03)', cursor: 'pointer',
+                        padding: 0, overflow: 'hidden', transition: 'all 0.15s',
+                      }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(167,139,250,0.5)')}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}>
+                        <div style={{ aspectRatio: '3/4', background: '#0A0A1E' }}>
+                          <img src={card.imageSmall} alt={card.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                            loading="lazy" />
+                        </div>
+                        <div style={{ padding: '8px 8px 10px' }}>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: '#F1F5F9', marginBottom: 3,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {card.name}
+                          </p>
+                          <p style={{ fontSize: 10, color: '#64748B', marginBottom: 2 }}>{card.setName}</p>
+                          {card.rarity && (
+                            <p style={{ fontSize: 10, fontWeight: 700, color: rarityColor(card.rarity) }}>
+                              {card.rarity}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : cardQ.trim() ? (
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: '#64748B' }}>找不到「{cardQ}」</div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: '#475569', fontSize: 13 }}>
+                    輸入卡牌名稱搜尋
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">遊戲</label>
-                <select value={form.cardGame} onChange={(e) => setForm({ ...form, cardGame: e.target.value })}
-                  className={inputCls} style={{ ...inputStyle, cursor: 'pointer' }}>
-                  {GAMES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-                </select>
-              </div>
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">卡牌圖片</label>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }} />
-                <div className="flex gap-2">
-                  <input value={form.cardImage} onChange={(e) => setForm({ ...form, cardImage: e.target.value })}
-                    placeholder="https://... 或點右側上傳" className={`${inputCls} flex-1`} style={inputStyle} />
-                  <button type="button" onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImg}
-                    className="px-3 py-2 rounded-xl text-xs font-bold text-slate-300 whitespace-nowrap"
-                    style={{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.3)' }}>
-                    {uploadingImg ? '上傳中...' : '📷 上傳'}
+            )}
+
+            {/* Step 2: Form */}
+            {(step === 'form' || editing) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Selected card preview */}
+                {(selectedCard || editing) && (
+                  <div style={{
+                    display: 'flex', gap: 16, padding: 16, borderRadius: 16,
+                    background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)',
+                  }}>
+                    <div style={{ width: 72, height: 100, borderRadius: 8, overflow: 'hidden',
+                      background: '#0A0A1E', flexShrink: 0 }}>
+                      <img src={selectedCard?.imageLarge || editing?.cardImage}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+                        {selectedCard?.name || editing?.cardName}
+                      </p>
+                      {selectedCard && (
+                        <>
+                          <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 2 }}>{selectedCard.setName}</p>
+                          {selectedCard.rarity && (
+                            <p style={{ fontSize: 12, fontWeight: 700, color: rarityColor(selectedCard.rarity) }}>
+                              {selectedCard.rarity}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Price */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748B',
+                    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>售價 (NT$) *</label>
+                  <input type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})}
+                    placeholder="0" style={inputStyle} min="0" autoFocus={step === 'form'} />
+                </div>
+
+                {/* Condition + Quantity */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748B',
+                      textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>品相</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {CONDITIONS.map(c => (
+                        <button key={c} onClick={() => setForm({...form, condition: c})} style={{
+                          flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+                          fontSize: 13, fontWeight: 700,
+                          background: form.condition === c ? `${COND_COLOR[c]}20` : 'rgba(255,255,255,0.04)',
+                          color: form.condition === c ? COND_COLOR[c] : '#475569',
+                          outline: form.condition === c ? `1.5px solid ${COND_COLOR[c]}60` : 'none',
+                        }}>{c}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748B',
+                      textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>數量</label>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button onClick={() => setForm({...form, quantity: String(Math.max(1, parseInt(form.quantity)-1))})}
+                        style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
+                          background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 18, cursor: 'pointer' }}>−</button>
+                      <span style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 800, color: '#fff' }}>
+                        {form.quantity}
+                      </span>
+                      <button onClick={() => setForm({...form, quantity: String(parseInt(form.quantity)+1)})}
+                        style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
+                          background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 18, cursor: 'pointer' }}>＋</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#64748B',
+                    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>備注說明</label>
+                  <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})}
+                    placeholder="版本、品相說明..." rows={3}
+                    style={{ ...inputStyle, resize: 'none' }} />
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                  <button onClick={() => setShowModal(false)} style={{
+                    flex: 1, padding: '12px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                    fontSize: 14, fontWeight: 700, color: '#64748B',
+                    background: 'rgba(255,255,255,0.05)',
+                  }}>取消</button>
+                  <button onClick={handleSave}
+                    disabled={saving || !form.price || (!editing && !selectedCard)}
+                    style={{
+                      flex: 2, padding: '12px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                      fontSize: 14, fontWeight: 700, color: '#fff',
+                      background: 'linear-gradient(135deg,#7C3AED,#6D28D9)',
+                      opacity: saving || !form.price ? 0.5 : 1,
+                      boxShadow: '0 4px 16px rgba(124,58,237,0.3)',
+                    }}>
+                    {saving ? '儲存中...' : editing ? '儲存變更' : '上架商品'}
                   </button>
                 </div>
               </div>
-              {form.cardImage && (
-                <div className="col-span-2 flex justify-center">
-                  <img src={form.cardImage} className="h-32 object-contain rounded-xl"
-                    style={{ background: '#0A0A1E' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
-                </div>
-              )}
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">品相</label>
-                <select value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })}
-                  className={inputCls} style={{ ...inputStyle, cursor: 'pointer' }}>
-                  {CONDITIONS.map((c) => <option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">售價 (NT$) *</label>
-                <input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  placeholder="0" className={inputCls} style={inputStyle} min="0" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">數量</label>
-                <input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                  className={inputCls} style={inputStyle} min="1" />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">商品說明</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="版本、品相說明、備注..." rows={3}
-                  className={inputCls} style={{ ...inputStyle, resize: 'none' }} />
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowForm(false)}
-                className="flex-1 py-3 rounded-xl font-bold text-slate-400 text-sm"
-                style={{ background: 'rgba(255,255,255,0.05)' }}>取消</button>
-              <button onClick={handleSave} disabled={saving || !form.cardName || !form.price}
-                className="flex-1 py-3 rounded-xl font-bold text-white text-sm"
-                style={{ background: 'linear-gradient(135deg,#7C3AED,#6D28D9)', opacity: saving ? 0.6 : 1 }}>
-                {saving ? '儲存中...' : editing ? '儲存變更' : '新增商品'}
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}

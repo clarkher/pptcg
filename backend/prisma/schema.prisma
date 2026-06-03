@@ -39,6 +39,28 @@ model Listing {
   orders      Order[]
 }
 
+model PokemonCard {
+  id          String   @id
+  name        String
+  number      String
+  imageSmall  String
+  imageLarge  String
+  rarity      String?
+  setId       String
+  setName     String
+  setSeries   String
+  setLogo     String?
+  releaseDate String
+  hp          String?
+  types       String?
+  supertype   String?
+  createdAt   DateTime @default(now())
+
+  @@index([name])
+  @@index([setId])
+  @@index([releaseDate])
+}
+
 model Order {
   id        String   @id @default(cuid())
   listingId String
