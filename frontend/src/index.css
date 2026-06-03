@@ -3,16 +3,23 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg-base: #06060f;
+  /* 屁TCG 品牌色 */
+  --brand-cyan: #00e5ff;        /* 屁TCG 亮藍 */
+  --brand-purple: #6d28ec;      /* 屁TCG 紫 */
+  --brand-purple-light: #8B5CF6;
+  --brand-yellow: #ffff00;      /* 屁TCG 黃 */
+  --brand-gold: #e0c03f;        /* 屁TCG 金 */
+
+  --bg-base: #050508;
   --bg-surface: rgba(255,255,255,0.03);
   --bg-surface-hover: rgba(255,255,255,0.05);
-  --border: rgba(255,255,255,0.07);
-  --border-accent: rgba(139,92,246,0.25);
-  --primary: #8B5CF6;
-  --primary-bright: #A78BFA;
-  --primary-glow: rgba(139,92,246,0.35);
-  --accent-cyan: #22D3EE;
-  --accent-gold: #F59E0B;
+  --border: rgba(255,255,255,0.08);
+  --border-accent: rgba(0,229,255,0.2);
+  --primary: var(--brand-cyan);
+  --primary-bright: #33eeff;
+  --primary-glow: rgba(0,229,255,0.3);
+  --accent-purple: var(--brand-purple);
+  --accent-gold: var(--brand-gold);
   --text-primary: #F1F5F9;
   --text-secondary: #94A3B8;
   --text-muted: #475569;
@@ -28,7 +35,7 @@ body {
   background-attachment: fixed;
 }
 
-/* Animated mesh background */
+/* Animated mesh background — 品牌色 cyan + purple */
 body::before {
   content: '';
   position: fixed;
@@ -36,9 +43,9 @@ body::before {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(88,28,220,0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(34,211,238,0.06) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 60% at 60% 30%, rgba(245,158,11,0.04) 0%, transparent 50%);
+    radial-gradient(ellipse 70% 45% at 15% 15%, rgba(109,40,236,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 40% at 85% 75%, rgba(0,229,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 50% at 55% 50%, rgba(109,40,236,0.06) 0%, transparent 50%);
   animation: meshShift 18s ease-in-out infinite alternate;
 }
 
@@ -168,8 +175,8 @@ input:-webkit-autofill:focus {
 }
 .card-item:hover {
   transform: translateY(-3px) scale(1.01);
-  border-color: rgba(139,92,246,0.35);
-  box-shadow: 0 8px 32px rgba(139,92,246,0.2), 0 2px 8px rgba(0,0,0,0.4);
+  border-color: rgba(0,229,255,0.3);
+  box-shadow: 0 8px 32px rgba(0,229,255,0.15), 0 2px 8px rgba(0,0,0,0.5);
 }
 .card-item:hover::before { opacity: 1; }
 .card-item:active { transform: scale(0.97); }

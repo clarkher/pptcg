@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import appLogo from '../assets/app-logo.png';
+import brandLogo from '../assets/brand-logo.png';
+import brandLogoWhite from '../assets/brand-logo-white.png';
 
 const NAV = [
   { path: '/', label: '首頁', exact: true, icon: HomeIcon },
@@ -90,55 +91,28 @@ export function AppShell({ children }: Props) {
           }} />
         </div>
 
-        {/* Logo */}
+        {/* Logo — 真正品牌 logo */}
         <div
           style={{
-            padding: '4px 10px 32px', display: 'flex', alignItems: 'center', gap: 10,
-            cursor: 'pointer', position: 'relative', zIndex: 1,
+            padding: '4px 8px 28px', cursor: 'pointer', position: 'relative', zIndex: 1,
           }}
           onClick={() => navigate('/')}
         >
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            {/* Glow ring behind logo */}
-            <div style={{
-              position: 'absolute', inset: -3, borderRadius: 15,
-              background: 'linear-gradient(135deg, #8B5CF6, #22D3EE)',
-              opacity: 0.5,
-              filter: 'blur(6px)',
-              zIndex: 0,
-            }} />
-            <div style={{
-              position: 'absolute', inset: -1, borderRadius: 13,
-              background: 'linear-gradient(135deg, #8B5CF6, #22D3EE)',
-              opacity: 0.6,
-              zIndex: 1,
-            }} />
-            <img
-              src={appLogo}
-              alt="屁TCG"
-              style={{
-                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                position: 'relative', zIndex: 2,
-                boxShadow: '0 0 16px rgba(139,92,246,0.5)',
-              }}
-            />
-          </div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: -0.5, textShadow: '0 0 20px rgba(167,139,250,0.4)' }}>
-              屁<span style={{
-                color: '#A78BFA',
-                textShadow: '0 0 12px rgba(167,139,250,0.8), 0 0 24px rgba(167,139,250,0.4)',
-              }}>TCG</span>
-            </span>
-            <div style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: 2,
-              color: '#22D3EE', opacity: 0.7, marginTop: -2,
-              textTransform: 'uppercase',
-              textShadow: '0 0 8px rgba(34,211,238,0.6)',
-            }}>
-              CARD MARKET
-            </div>
-          </div>
+          {/* Cyan glow behind logo */}
+          <div style={{
+            position: 'absolute', inset: 0, bottom: 28,
+            background: 'radial-gradient(ellipse at center, rgba(0,229,255,0.12) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          <img
+            src={brandLogo}
+            alt="屁TCG 卡牌遊戲"
+            style={{
+              width: '100%', maxWidth: 180, height: 'auto',
+              filter: 'drop-shadow(0 0 12px rgba(0,229,255,0.4)) drop-shadow(0 0 24px rgba(109,40,236,0.3))',
+              position: 'relative', zIndex: 1,
+            }}
+          />
         </div>
 
         {/* Divider */}
@@ -165,7 +139,7 @@ export function AppShell({ children }: Props) {
                   background: active
                     ? 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(139,92,246,0.08))'
                     : 'transparent',
-                  color: active ? '#A78BFA' : '#64748B',
+                  color: active ? '#00e5ff' : '#64748B',
                   transition: 'all 0.2s',
                   boxShadow: active
                     ? 'inset 0 0 0 1px rgba(139,92,246,0.3), 0 0 16px rgba(139,92,246,0.1)'
@@ -179,15 +153,15 @@ export function AppShell({ children }: Props) {
                   <div style={{
                     position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3,
                     borderRadius: '0 3px 3px 0',
-                    background: 'linear-gradient(180deg, #A78BFA, #22D3EE)',
-                    boxShadow: '0 0 8px rgba(167,139,250,0.8)',
+                    background: 'linear-gradient(180deg, #00e5ff, #22D3EE)',
+                    boxShadow: '0 0 8px rgba(0,229,255,0.8)',
                   }} />
                 )}
                 <span style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 32, height: 32, borderRadius: 10, flexShrink: 0,
                   background: active
-                    ? 'rgba(167,139,250,0.15)'
+                    ? 'rgba(0,229,255,0.1)'
                     : 'rgba(255,255,255,0.03)',
                   transition: 'all 0.2s',
                   filter: active ? 'drop-shadow(0 0 6px rgba(167,139,250,0.6))' : 'none',
@@ -198,8 +172,8 @@ export function AppShell({ children }: Props) {
                 {active && (
                   <div style={{
                     marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%',
-                    background: '#A78BFA',
-                    boxShadow: '0 0 8px #A78BFA, 0 0 16px rgba(167,139,250,0.5)',
+                    background: '#00e5ff',
+                    boxShadow: '0 0 8px #00e5ff, 0 0 16px rgba(167,139,250,0.5)',
                     animation: 'pulse-dot 2s ease-in-out infinite',
                   }} />
                 )}
@@ -211,7 +185,7 @@ export function AppShell({ children }: Props) {
         {/* Divider */}
         <div style={{
           height: 1, margin: '16px 10px 16px',
-          background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.15), transparent)',
+          background: 'linear-gradient(90deg, transparent, rgba(0,229,255,0.1), transparent)',
           position: 'relative', zIndex: 1,
         }} />
 
@@ -250,7 +224,7 @@ export function AppShell({ children }: Props) {
                 <span style={{ fontSize: 14 }}>💰</span>
                 <span style={{
                   fontSize: 15, fontWeight: 900,
-                  background: 'linear-gradient(135deg, #A78BFA, #22D3EE)',
+                  background: 'linear-gradient(135deg, #00e5ff, #22D3EE)',
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                 }}>
                   NT${user.wallet.toLocaleString()}
@@ -295,7 +269,7 @@ export function AppShell({ children }: Props) {
               <button key={item.path} onClick={() => goTo(item.path)} style={{
                 flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
                 padding: '10px 0 8px', gap: 4, border: 'none', cursor: 'pointer',
-                background: 'transparent', color: active ? '#A78BFA' : '#475569',
+                background: 'transparent', color: active ? '#00e5ff' : '#475569',
                 transition: 'color 0.15s',
               }}>
                 <div style={{
