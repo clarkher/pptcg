@@ -1,61 +1,81 @@
 import { useEffect } from 'react';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 
 const NAV = [
-  { path: '/admin', label: '總覽', icon: '📊', exact: true },
-  { path: '/admin/listings', label: '商品管理', icon: '🃏' },
-  { path: '/admin/orders', label: '訂單管理', icon: '📋' },
+  { path: '/admin',           label: '總覽',    icon: '⊡', exact: true },
+  { path: '/admin/listings',  label: '商品管理', icon: '🃏' },
+  { path: '/admin/orders',    label: '訂單管理', icon: '📦' },
 ];
 
 export function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
   useEffect(() => {
-    if (!user) { navigate('/login'); return; }
-    if (!user.isAdmin) { navigate('/'); }
+    if (!user) { navigate('/admin/login'); return; }
+    if (!user.isAdmin) navigate('/admin/login');
   }, [user, navigate]);
 
   if (!user?.isAdmin) return null;
 
   return (
-    <div className="min-h-dvh flex" style={{ background: '#080810' }}>
-      {/* Sidebar */}
-      <aside className="w-52 shrink-0 flex flex-col border-r py-6"
-        style={{ background: '#0D0D1C', borderColor: 'rgba(255,255,255,0.06)' }}>
-        <div className="px-5 mb-8">
-          <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: '#A78BFA' }}>ADMIN</p>
-          <h1 className="text-xl font-black text-white">屁TCG</h1>
+    <div style={{ display: 'flex', height: '100dvh', background: '#07070F', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
+      {/* ── Sidebar ── */}
+      <aside style={{
+        width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column',
+        background: '#0A0A18', borderRight: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        {/* Brand */}
+        <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2.5, textTransform: 'uppercase', padding: '2px 7px', borderRadius: 5, color: '#7C3AED', background: 'rgba(124,58,237,0.15)', display: 'inline-block', marginBottom: 8 }}>ADMIN</span>
+          <div style={{ fontSize: 18, fontWeight: 900, color: '#F8FAFC', lineHeight: 1.2 }}>屁TCG</div>
+          <div style={{ fontSize: 11, color: '#334155', marginTop: 4 }}>{user.username}</div>
         </div>
-        <nav className="flex-1 px-3 space-y-1">
-          {NAV.map((item) => {
-            const isActive = item.exact
-              ? location.pathname === item.path
-              : location.pathname.startsWith(item.path);
+
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+          {NAV.map(item => {
+            const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
             return (
-              <button key={item.path} onClick={() => navigate(item.path)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-left transition-all"
-                style={isActive
-                  ? { background: 'rgba(167,139,250,0.15)', color: '#A78BFA' }
-                  : { color: '#64748B' }}>
-                <span className="text-base">{item.icon}</span>
+              <button key={item.path} onClick={() => navigate(item.path)} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 10px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                width: '100%', textAlign: 'left', fontSize: 13, fontWeight: active ? 700 : 400,
+                background: active ? 'rgba(124,58,237,0.18)' : 'transparent',
+                color: active ? '#C4B5FD' : '#475569',
+                transition: 'all 0.1s',
+                borderLeft: active ? '2px solid #7C3AED' : '2px solid transparent',
+              }}>
+                <span style={{ fontSize: 16 }}>{item.icon}</span>
                 {item.label}
               </button>
             );
           })}
         </nav>
-        <div className="px-5 pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-          <button onClick={() => navigate('/')}
-            className="w-full text-xs text-slate-600 hover:text-slate-400 transition-colors text-left">
-            ← 回到買家頁面
+
+        {/* Bottom */}
+        <div style={{ padding: '10px 8px 16px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Link to="/" target="_blank" style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+            borderRadius: 9, fontSize: 12, color: '#334155', textDecoration: 'none',
+            background: 'transparent',
+          }}>
+            ↗ 前台
+          </Link>
+          <button onClick={() => { logout(); navigate('/admin/login'); }} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+            borderRadius: 9, border: 'none', cursor: 'pointer', width: '100%',
+            background: 'transparent', color: '#334155', fontSize: 12, textAlign: 'left',
+          }}>
+            ⇥ 登出
           </button>
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 overflow-y-auto p-8">
+      {/* ── Main content ── */}
+      <main style={{ flex: 1, overflowY: 'auto', padding: '36px 40px' }}>
         <Outlet />
       </main>
     </div>

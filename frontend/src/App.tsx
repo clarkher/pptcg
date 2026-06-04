@@ -8,6 +8,7 @@ import { Profile } from './pages/Profile';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ListingDetail } from './pages/ListingDetail';
+import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminListings } from './pages/admin/AdminListings';
@@ -23,6 +24,9 @@ function App() {
           {/* Auth — no shell */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Admin login — separate from user login */}
+          <Route path="/admin/login" element={<AdminLogin />} />
 
           {/* Admin — own layout */}
           <Route path="/admin" element={<AdminLayout />}>
