@@ -1,5 +1,6 @@
 import { useState, useRef, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Camera } from 'lucide-react';
 import { cardsApi } from '../api/cards';
 import { listingsApi } from '../api/listings';
 import { uploadImage } from '../api/upload';
@@ -8,6 +9,8 @@ import { Header } from '../components/Header';
 import { GameBadge } from '../components/GameBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { SEOHead } from '../components/SEOHead';
+import yugiohIcon from '../assets/game-icons/yugioh-icon.png';
+import pokemonIcon from '../assets/game-icons/pokemon-icon.png';
 
 type Step = 'select-game' | 'search-card' | 'fill-details';
 const CONDITIONS: Condition[] = ['NM', 'LP', 'MP', 'HP'];
@@ -113,7 +116,7 @@ export function Sell() {
               onClick={() => { setGame('yugioh'); setStep('search-card'); }}
               className="w-full bg-[#16213E] border border-yellow-500/30 hover:border-yellow-500/60 rounded-2xl p-5 flex items-center gap-4 transition-colors"
             >
-              <span className="text-3xl">⚔️</span>
+              <img src={yugiohIcon} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />
               <div className="text-left">
                 <p className="font-bold text-yellow-400">遊戲王</p>
                 <p className="text-xs text-slate-400">OCG / TCG 卡牌</p>
@@ -123,7 +126,7 @@ export function Sell() {
               onClick={() => { setGame('pokemon'); setStep('search-card'); }}
               className="w-full bg-[#16213E] border border-red-500/30 hover:border-red-500/60 rounded-2xl p-5 flex items-center gap-4 transition-colors"
             >
-              <span className="text-3xl">⚡</span>
+              <img src={pokemonIcon} alt="" style={{ width: 32, height: 32, objectFit: 'contain' }} />
               <div className="text-left">
                 <p className="font-bold text-red-400">寶可夢</p>
                 <p className="text-xs text-slate-400">Pokemon TCG 卡牌</p>
@@ -221,7 +224,8 @@ export function Sell() {
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full border border-dashed border-[#0F3460] hover:border-violet-500/50 rounded-xl py-4 text-slate-500 text-sm transition-colors"
                 >
-                  📷 點此上傳照片
+                  <Camera size={15} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+                  點此上傳照片
                 </button>
               )}
             </div>

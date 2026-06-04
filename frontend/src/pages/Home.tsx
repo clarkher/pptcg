@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ShoppingCart, ClipboardList, Wallet } from 'lucide-react';
 import { listingsApi } from '../api/listings';
 import type { Listing } from '../types';
 import { CardGrid } from '../components/CardGrid';
@@ -7,6 +8,27 @@ import { useAuthStore } from '../stores/authStore';
 import { SEOHead } from '../components/SEOHead';
 import heroBanner from '../assets/hero-banner.png';
 import brandLogo from '../assets/brand-logo.png';
+import yugiohIcon from '../assets/game-icons/yugioh-icon.png';
+import pokemonIcon from '../assets/game-icons/pokemon-icon.png';
+
+const QUICK_ACTIONS = [
+  {
+    Icon: ShoppingCart,
+    label: '瀏覽市場', sub: '探索卡牌商品',
+    path: '/market',
+    gradient: 'linear-gradient(135deg, rgba(109,40,236,0.15), rgba(109,40,217,0.08))',
+    border: 'rgba(109,40,236,0.2)',
+    glow: 'rgba(109,40,236,0.12)',
+  },
+  {
+    Icon: ClipboardList,
+    label: '我的訂單', sub: '購買記錄',
+    path: '/orders',
+    gradient: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06))',
+    border: 'rgba(16,185,129,0.18)',
+    glow: 'rgba(16,185,129,0.1)',
+  },
+];
 
 export function Home() {
   const navigate = useNavigate();
@@ -42,7 +64,6 @@ export function Home() {
         alignItems: 'center', justifyContent: 'space-between',
         padding: '52px 20px 16px',
       }}>
-        {/* 真品牌 logo */}
         <img
           src={brandLogo}
           alt="屁TCG"
@@ -59,7 +80,8 @@ export function Home() {
             color: '#00e5ff', backdropFilter: 'blur(8px)',
             boxShadow: '0 0 12px rgba(0,229,255,0.1)',
           }}>
-            💰 NT${user.wallet.toLocaleString()}
+            <Wallet size={13} />
+            NT${user.wallet.toLocaleString()}
           </button>
         ) : (
           <button onClick={() => navigate('/login')} style={{
@@ -83,17 +105,14 @@ export function Home() {
           position: 'absolute', inset: 0, width: '100%', height: '100%',
           objectFit: 'cover', objectPosition: 'center 35%', opacity: 0.75,
         }} />
-        {/* Gradient overlay */}
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
           background: 'linear-gradient(135deg, rgba(10,5,30,0.82) 0%, rgba(20,10,50,0.45) 50%, rgba(8,4,20,0.70) 100%)',
         }} />
-        {/* Glow edges */}
         <div style={{
           position: 'absolute', inset: 0, pointerEvents: 'none',
           boxShadow: 'inset 0 0 40px rgba(109,40,236,0.15)',
         }} />
-        {/* Content */}
         <div style={{
           position: 'relative', height: '100%', display: 'flex',
           flexDirection: 'column', justifyContent: 'center', padding: '0 24px',
@@ -111,37 +130,30 @@ export function Home() {
           </h2>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => navigate('/market?game=yugioh')} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
               padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 800, cursor: 'pointer',
               background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)',
               color: '#FBBF24', backdropFilter: 'blur(8px)',
-            }}>⚔️ 遊戲王</button>
+            }}>
+              <img src={yugiohIcon} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />
+              遊戲王
+            </button>
             <button onClick={() => navigate('/market?game=pokemon')} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
               padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 800, cursor: 'pointer',
               background: 'rgba(244,114,182,0.12)', border: '1px solid rgba(244,114,182,0.35)',
               color: '#F472B6', backdropFilter: 'blur(8px)',
-            }}>⚡ 寶可夢</button>
+            }}>
+              <img src={pokemonIcon} alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} />
+              寶可夢
+            </button>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '16px 16px 0' }}>
-        {[
-          {
-            icon: '🛒', label: '瀏覽市場', sub: '探索卡牌商品',
-            path: '/market',
-            gradient: 'linear-gradient(135deg, rgba(109,40,236,0.15), rgba(109,40,217,0.08))',
-            border: 'rgba(109,40,236,0.2)',
-            glow: 'rgba(109,40,236,0.12)',
-          },
-          {
-            icon: '📋', label: '我的訂單', sub: '購買記錄',
-            path: '/orders',
-            gradient: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06))',
-            border: 'rgba(16,185,129,0.18)',
-            glow: 'rgba(16,185,129,0.1)',
-          },
-        ].map(item => (
+        {QUICK_ACTIONS.map(item => (
           <button key={item.path} onClick={() => navigate(item.path)} style={{
             borderRadius: 20, padding: '18px 16px', display: 'flex', alignItems: 'center', gap: 12,
             background: item.gradient, border: `1px solid ${item.border}`,
@@ -152,11 +164,12 @@ export function Home() {
           }}>
             <div style={{
               width: 40, height: 40, borderRadius: 14, display: 'flex',
-              alignItems: 'center', justifyContent: 'center', fontSize: 20,
+              alignItems: 'center', justifyContent: 'center',
               background: 'rgba(255,255,255,0.06)', flexShrink: 0,
               border: '1px solid rgba(255,255,255,0.08)',
+              color: '#94A3B8',
             }}>
-              {item.icon}
+              <item.Icon size={20} />
             </div>
             <div>
               <p style={{ fontSize: 13, fontWeight: 800, color: '#F1F5F9', marginBottom: 2 }}>{item.label}</p>

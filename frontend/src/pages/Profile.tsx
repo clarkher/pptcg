@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ShoppingCart, ClipboardList, Wallet } from 'lucide-react';
 import { Header } from '../components/Header';
 import { useAuthStore } from '../stores/authStore';
 
-function NavRow({ icon, label, sub, onClick }: { icon: string; label: string; sub: string; onClick: () => void }) {
+function NavRow({ icon, label, sub, onClick }: { icon: ReactNode; label: string; sub: string; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
       width: '100%', borderRadius: 18, padding: '16px',
@@ -16,8 +17,9 @@ function NavRow({ icon, label, sub, onClick }: { icon: string; label: string; su
     }}>
       <div style={{
         width: 44, height: 44, borderRadius: 14, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
+        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.18)',
+        color: '#8B5CF6',
       }}>{icon}</div>
       <div style={{ flex: 1 }}>
         <p style={{ fontSize: 14, fontWeight: 700, color: '#F1F5F9', marginBottom: 2 }}>{label}</p>
@@ -53,7 +55,6 @@ export function Profile() {
           backdropFilter: 'blur(20px)',
           boxShadow: '0 8px 40px rgba(88,28,220,0.2), inset 0 1px 0 rgba(255,255,255,0.08)',
         }}>
-          {/* Orb decoration */}
           <div style={{
             position: 'absolute', top: -30, right: -30, width: 120, height: 120,
             borderRadius: '50%', pointerEvents: 'none',
@@ -66,7 +67,6 @@ export function Profile() {
           }} />
 
           <div style={{ position: 'relative', zIndex: 2 }}>
-            {/* Avatar + name */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
               <div style={{ position: 'relative' }}>
                 <div style={{
@@ -104,15 +104,15 @@ export function Profile() {
                   NT${user.wallet.toLocaleString()}
                 </p>
               </div>
-              <div style={{ fontSize: 36, opacity: 0.8 }}>💰</div>
+              <Wallet size={36} style={{ opacity: 0.5, color: '#A78BFA' }} />
             </div>
           </div>
         </div>
 
         {/* Menu */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <NavRow icon="🛒" label="瀏覽市場" sub="探索所有卡牌商品" onClick={() => navigate('/market')} />
-          <NavRow icon="📋" label="我的訂單" sub="查看購買記錄與狀態" onClick={() => navigate('/orders')} />
+          <NavRow icon={<ShoppingCart size={20} />} label="瀏覽市場" sub="探索所有卡牌商品" onClick={() => navigate('/market')} />
+          <NavRow icon={<ClipboardList size={20} />} label="我的訂單" sub="查看購買記錄與狀態" onClick={() => navigate('/orders')} />
         </div>
 
         {/* Logout */}

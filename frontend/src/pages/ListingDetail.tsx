@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { HelpCircle, CheckCircle2 } from 'lucide-react';
 import { listingsApi } from '../api/listings';
 import { ordersApi } from '../api/orders';
 import type { Listing } from '../types';
@@ -48,7 +49,7 @@ export function ListingDetail() {
   if (loading) return <div style={{ paddingTop: 80 }}><LoadingSpinner /></div>;
   if (!listing) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', textAlign: 'center', padding: 32 }}>
-      <div style={{ fontSize: 48, opacity: 0.2, marginBottom: 16 }}>❓</div>
+      <div style={{ marginBottom: 16, opacity: 0.2 }}><HelpCircle size={48} color="#94A3B8" /></div>
       <p style={{ color: '#94A3B8', fontWeight: 600, marginBottom: 12 }}>找不到此商品</p>
       <button onClick={() => navigate(-1)} style={{ color: '#8B5CF6', fontSize: 14, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>← 返回</button>
     </div>
@@ -224,7 +225,7 @@ export function ListingDetail() {
             background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.2)',
             backdropFilter: 'blur(12px)',
           }}>
-            <div style={{ fontSize: 40, marginBottom: 10 }}>🎉</div>
+            <div style={{ marginBottom: 10 }}><CheckCircle2 size={40} color="#34D399" /></div>
             <p style={{ fontWeight: 800, color: '#34D399', fontSize: 18, marginBottom: 12 }}>購買成功！</p>
             <button onClick={() => navigate('/orders')} style={{
               fontSize: 13, fontWeight: 700, color: '#A78BFA',

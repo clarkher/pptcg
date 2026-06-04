@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { Wallet } from 'lucide-react';
 import brandLogo from '../assets/brand-logo.png';
 
 const NAV = [
@@ -220,7 +221,7 @@ export function AppShell({ children }: Props) {
                 background: 'rgba(0,0,0,0.2)',
                 border: '1px solid rgba(167,139,250,0.12)',
               }}>
-                <span style={{ fontSize: 14 }}>💰</span>
+                <Wallet size={15} style={{ color: '#64748B', flexShrink: 0 }} />
                 <span style={{
                   fontSize: 15, fontWeight: 900,
                   background: 'linear-gradient(135deg, #00e5ff, #22D3EE)',
