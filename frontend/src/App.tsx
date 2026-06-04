@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AppShell } from './components/AppShell';
 import { Home } from './pages/Home';
 import { Market } from './pages/Market';
@@ -14,11 +13,8 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminListings } from './pages/admin/AdminListings';
 import { AdminOrders } from './pages/admin/AdminOrders';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-
 function App() {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <BrowserRouter>
         <Routes>
           {/* Auth — no shell */}
@@ -49,7 +45,6 @@ function App() {
           } />
         </Routes>
       </BrowserRouter>
-    </GoogleOAuthProvider>
   );
 }
 
