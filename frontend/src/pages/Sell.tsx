@@ -7,6 +7,7 @@ import type { Card, Condition } from '../types';
 import { Header } from '../components/Header';
 import { GameBadge } from '../components/GameBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SEOHead } from '../components/SEOHead';
 
 type Step = 'select-game' | 'search-card' | 'fill-details';
 const CONDITIONS: Condition[] = ['NM', 'LP', 'MP', 'HP'];
@@ -83,6 +84,12 @@ export function Sell() {
 
   return (
     <div className="pb-24">
+      <SEOHead
+        title="上架卡牌"
+        description="在屁TCG 快速上架寶可夢卡牌、遊戲王卡牌，輕鬆出售閃卡與稀有卡。"
+        canonical="/sell"
+        noIndex={true}
+      />
       <Header
         title="上架商品"
         right={

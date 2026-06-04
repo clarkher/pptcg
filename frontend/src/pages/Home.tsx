@@ -4,6 +4,7 @@ import { listingsApi } from '../api/listings';
 import type { Listing } from '../types';
 import { CardGrid } from '../components/CardGrid';
 import { useAuthStore } from '../stores/authStore';
+import { SEOHead } from '../components/SEOHead';
 import heroBanner from '../assets/hero-banner.png';
 import brandLogo from '../assets/brand-logo.png';
 
@@ -19,6 +20,22 @@ export function Home() {
 
   return (
     <div style={{ paddingBottom: 100 }} className="page-enter">
+      <SEOHead
+        canonical="/"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "屁TCG",
+          "alternateName": "pipi cards",
+          "url": "https://pipicards.com",
+          "description": "台灣寶可夢卡牌交易平台，提供閃卡、稀有卡的安全買賣服務",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": { "@type": "EntryPoint", "urlTemplate": "https://pipicards.com/market?q={search_term_string}" },
+            "query-input": "required name=search_term_string"
+          }
+        }}
+      />
 
       {/* Mobile Header */}
       <div className="mobile-only-header" style={{

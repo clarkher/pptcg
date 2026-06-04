@@ -1,4 +1,23 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /orders
+Disallow: /profile
+
+# AI crawlers — allow for GEO visibility
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
 
 Sitemap: https://pipicards.com/sitemap.xml

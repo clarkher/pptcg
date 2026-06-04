@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuthStore } from '../stores/authStore';
+import { SEOHead } from '../components/SEOHead';
 import brandLogo from '../assets/brand-logo.png';
 import brandLogoMewtwo from '../assets/brand-logo-mewtwo.png';
 
@@ -28,6 +29,13 @@ export function Login() {
   };
 
   return (
+    <>
+    <SEOHead
+      title="登入"
+      description="登入屁TCG 開始買賣寶可夢卡牌，支援 Google 一鍵快速登入。"
+      canonical="/login"
+      noIndex={true}
+    />
     <div style={{
       minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '24px 20px', position: 'relative', overflow: 'hidden',
@@ -179,5 +187,6 @@ export function Login() {
         </p>
       </div>
     </div>
+    </>
   );
 }

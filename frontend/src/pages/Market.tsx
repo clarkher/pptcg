@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { listingsApi } from '../api/listings';
 import type { Listing, Game } from '../types';
 import { CardGrid } from '../components/CardGrid';
+import { SEOHead } from '../components/SEOHead';
 
 const TABS: { label: string; value: Game; emoji: string; color: string }[] = [
   { label: '全部', value: 'all', emoji: '🃏', color: '#A78BFA' },
@@ -29,8 +30,21 @@ export function Market() {
 
   useEffect(() => { load(); }, [load]);
 
+  const gameTitleMap: Record<string, string> = {
+    all: '所有卡牌',
+    pokemon: '寶可夢卡牌',
+    yugioh: '遊戲王卡牌',
+  };
+  const gameTitle = gameTitleMap[game] || '所有卡牌';
+  const marketDesc = `在屁TCG 瀏覽${gameTitle}交易市場。${q ? `搜尋「${q}」相關` : ''}閃卡、稀有卡、二手卡安全買賣，快速成交。`;
+
   return (
     <div style={{ paddingBottom: 100 }} className="page-enter">
+      <SEOHead
+        title={q ? `「${q}」搜尋結果 - ${gameTitle}市場` : `${gameTitle}市場`}
+        description={marketDesc}
+        canonical="/market"
+      />
 
       {/* Header */}
       <div style={{ padding: '52px 16px 0' }}>

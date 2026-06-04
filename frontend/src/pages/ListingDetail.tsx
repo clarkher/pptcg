@@ -5,6 +5,7 @@ import { ordersApi } from '../api/orders';
 import type { Listing } from '../types';
 import { GameBadge } from '../components/GameBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SEOHead } from '../components/SEOHead';
 import { useAuthStore } from '../stores/authStore';
 import cardPlaceholder from '../assets/card-placeholder.png';
 
@@ -55,8 +56,36 @@ export function ListingDetail() {
 
   const condColor = COND_COLOR[listing.condition] ?? COND_COLOR['NM'];
 
+  const COND_FULL: Record<string, string> = { NM: '近全新', LP: '輕微磨損', MP: '中度磨損', HP: '重度磨損' };
+  const gameLabel = listing.cardGame === 'pokemon' ? '寶可夢' : '遊戲王';
+  const condLabel = COND_FULL[listing.condition] || listing.condition;
+  const listingDesc = `${listing.cardName}（${gameLabel}／${condLabel}）NT$${listing.price}，由 @${listing.seller.username} 在屁TCG 上架。安全快速卡牌交易平台。`;
+
   return (
     <div style={{ paddingBottom: 128 }} className="page-enter">
+      <SEOHead
+        title={`${listing.cardName} - ${gameLabel}卡牌`}
+        description={listingDesc}
+        canonical={`/listing/${listing.id}`}
+        ogImage={listing.cardImage || undefined}
+        ogType="product"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": listing.cardName,
+          "description": listingDesc,
+          "image": listing.cardImage,
+          "offers": {
+            "@type": "Offer",
+            "priceCurrency": "TWD",
+            "price": listing.price,
+            "availability": listing.status === 'active'
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+            "seller": { "@type": "Person", "name": listing.seller.username }
+          }
+        }}
+      />
 
       {/* Back nav */}
       <div style={{

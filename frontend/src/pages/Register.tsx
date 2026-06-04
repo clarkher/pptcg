@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { SEOHead } from '../components/SEOHead';
 import brandLogo from '../assets/brand-logo.png';
 import brandLogoMewtwo from '../assets/brand-logo-mewtwo.png';
 
@@ -34,6 +35,13 @@ export function Register() {
   ] as const;
 
   return (
+    <>
+    <SEOHead
+      title="註冊"
+      description="免費註冊屁TCG，立即開始買賣寶可夢卡牌、遊戲王卡牌。"
+      canonical="/register"
+      noIndex={true}
+    />
     <div style={{
       minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '24px 20px', position: 'relative', overflow: 'hidden',
@@ -147,5 +155,6 @@ export function Register() {
         </p>
       </div>
     </div>
+    </>
   );
 }
