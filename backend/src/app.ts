@@ -10,12 +10,23 @@ import uploadRoutes from './routes/upload';
 
 const app = express();
 
-const ALLOWED_ORIGINS = [
+const STATIC_ORIGINS = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
+  'http://localhost:5173',
   'https://pipicards.com',
   'https://www.pipicards.com',
 ];
-app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow same-origin / curl (no origin), static allowlist, and any Vercel deployment
+    if (!origin || STATIC_ORIGINS.includes(origin) || /\.vercel\.app$/.test(new URL(origin).hostname)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`CORS blocked: ${origin}`));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
