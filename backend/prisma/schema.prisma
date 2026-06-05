@@ -20,6 +20,8 @@ model User {
   listings  Listing[]
   orders    Order[]   @relation("buyer")
   sales     Order[]   @relation("seller")
+  wishlists     Wishlist[]
+  notifications Notification[]
 }
 
 model Listing {
@@ -30,6 +32,7 @@ model Listing {
   cardImage   String
   language    String   @default("en")    // "en" | "ja" | "zh"
   condition   String   @default("NM")
+  variant     String   @default("標準")
   price       Float
   quantity    Int      @default(1)
   description String?
@@ -79,4 +82,61 @@ model Order {
   total     Float
   status    String   @default("pending")
   createdAt DateTime @default(now())
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  cardId    String
+  cardName  String
+  cardImage String
+  language  String
+  variant   String?
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, cardId, variant])
+  @@index([cardId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   @default("restock")
+  cardId    String
+  cardName  String
+  cardImage String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+model Rarity {
+  id        String @id @default(cuid())
+  code      String @unique
+  label     String
+  color     String @default("#64748b")
+  sortOrder Int    @default(0)
+}
+
+model Series {
+  id        String  @id @default(cuid())
+  key       String
+  name      String
+  language  String
+  logo      String?
+  sortOrder Int     @default(0)
+
+  @@unique([language, key])
+}
+
+model Condition {
+  id        String @id @default(cuid())
+  code      String @unique
+  label     String
+  sortOrder Int    @default(0)
 }
