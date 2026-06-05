@@ -12,7 +12,9 @@
     "db:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
     "scrape:pokemon": "ts-node scripts/scrape-pokemon.ts",
-    "scrape:pokemon:multi": "ts-node scripts/scrape-pokemon-multilang.ts"
+    "scrape:pokemon:multi": "ts-node scripts/scrape-pokemon-multilang.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -35,6 +37,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.2",
     "nodemon": "^3.1.9",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "vitest": "^4.1.8"
   }
 }
