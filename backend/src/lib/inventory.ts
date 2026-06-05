@@ -20,3 +20,7 @@ export function aggregateInventory(rows: InventoryRow[]): InventoryAgg {
   const variantCount = new Set(rows.map((r) => r.variant)).size;
   return { minPrice, totalQty, variantCount };
 }
+
+export function becameRestocked(prevTotalQty: number, nextTotalQty: number): boolean {
+  return prevTotalQty <= 0 && nextTotalQty > 0;
+}

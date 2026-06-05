@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { aggregateInventory, type InventoryRow } from './inventory';
+import { aggregateInventory, becameRestocked, type InventoryRow } from './inventory';
 
 const rows = (...r: Partial<InventoryRow>[]): InventoryRow[] =>
   r.map((x) => ({ cardId: 'c1', variant: '標準', condition: 'NM', price: 100, quantity: 1, ...x }));
@@ -32,5 +32,20 @@ describe('aggregateInventory', () => {
     expect(agg.totalQty).toBe(2);
     expect(agg.minPrice).toBe(300);
     expect(agg.variantCount).toBe(2);
+  });
+});
+
+describe('becameRestocked', () => {
+  it('0 → 正數 視為補貨', () => {
+    expect(becameRestocked(0, 5)).toBe(true);
+  });
+  it('正數 → 正數 不算補貨', () => {
+    expect(becameRestocked(3, 8)).toBe(false);
+  });
+  it('正數 → 0 不算補貨', () => {
+    expect(becameRestocked(5, 0)).toBe(false);
+  });
+  it('0 → 0 不算補貨', () => {
+    expect(becameRestocked(0, 0)).toBe(false);
   });
 });
