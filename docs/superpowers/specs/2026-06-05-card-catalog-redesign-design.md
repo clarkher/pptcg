@@ -73,6 +73,40 @@ model Notification {
 ```
 - User 需加上 `wishlists Wishlist[]` 與 `notifications Notification[]` 反向關聯。
 
+### 受控詞彙參照表（admin 可 CRUD）
+把目前寫死／自由字串的稀有度、系列、品相改成 admin 可管理的參照資料，是「資料正確性」的核心。
+
+```prisma
+model Rarity {
+  id        String @id @default(cuid())
+  code      String @unique          // "C","U","R","RR","SR","AR","SAR","UR"...
+  label     String                  // 顯示名稱
+  color     String @default("#64748b") // 徽章顏色
+  sortOrder Int    @default(0)       // 排序（同價時的次序、清單順序）
+}
+
+model Series {
+  id        String  @id @default(cuid())
+  key       String                   // "sv","swsh"...（對應 PokemonCard.seriesKey）
+  name      String                   // 顯示名稱
+  language  String                   // 系列為語言別
+  logo      String?
+  sortOrder Int     @default(0)
+  @@unique([language, key])
+}
+
+model Condition {
+  id        String @id @default(cuid())
+  code      String @unique          // "NM","LP","MP","HP","PSA10"...（對應 Listing.condition）
+  label     String                  // 顯示名稱（近完美/輕微磨損…）
+  sortOrder Int    @default(0)
+}
+```
+- `PokemonCard.rarity` 存 `Rarity.code`；`PokemonCard.seriesKey` 對應 `Series.key`；`Listing.condition` 存 `Condition.code`。
+- 徽章顏色、清單/排序順序由參照表決定（前後台共用）。
+- 這些表為「軟參照」（用 code 字串對應，不加外鍵約束），避免改 code/刪除時連鎖卡住既有資料；刪除使用中的 code 時後台**警告但不阻擋**，並在卡片管理頁標示「未知稀有度/品相」供修正。
+- 需一支 seed/migration 把現有 `PokemonCard.rarity` distinct 值、`seriesKey/seriesName` distinct 值、以及現有品相（NM/LP/MP/HP）匯入這三張表作為初始資料。
+
 ### 補貨通知流程
 當某 `cardId` 的庫存從「無貨」變成「有貨」時觸發（admin 新增庫存或把數量從 0 改成正數）：
 1. 查該 `cardId` 所有 `notified=false` 的 `Wishlist`。
@@ -120,6 +154,35 @@ model Notification {
 - **篩選**：語言、系列、套系、搜尋、**只看有人敲碗的卡**、只看有/無庫存。
 - 保留現有 `AdminListings` 的卡片挑選器邏輯做底層資料來源。
 
+## 後台手動修資料（資料正確性）
+
+目錄 `PokemonCard` 來自匯入來源，rarity / 卡名 / 卡圖 / 套系歸屬可能有錯或缺漏。後台必須能**手動修正目錄資料**，確保前台顯示與篩選正確。
+
+### 編輯目錄卡欄位
+- 後台卡片詳情可編輯 `PokemonCard` 的：`name`、`number`、`rarity`、`image`、`imageHigh`、`seriesKey`、`seriesName`、`setId`、`setName`、`types`、`hp`、`supertype`。
+- `rarity` / `seriesKey` / `condition` 以下拉選單從參照表（Rarity/Series/Condition）選，避免打錯。
+- 編輯後前台立即反映（同一張 `PokemonCard`）。
+- 修改 rarity 直接修正前台徽章與排序，是解「資料不準」的主要手段。
+
+### 換圖
+- 後台卡片詳情可**替換卡圖**：上傳新圖（沿用既有 upload worker `POST /upload` → 回傳 URL），更新 `PokemonCard.image`（高清圖選填 `imageHigh`）。
+- 支援貼圖片 URL 或上傳檔案兩種方式。
+
+### 參照資料管理頁（稀有度 / 系列 / 品相 CRUD）
+- 後台新增「資料管理」頁，三個分頁分別 CRUD `Rarity`、`Series`、`Condition`：
+  - **稀有度**：新增/編輯/刪除，欄位 code、label、徽章顏色、排序。
+  - **系列**：新增/編輯/刪除，欄位 language、key、name、logo、排序。
+  - **品相**：新增/編輯/刪除，欄位 code、label、排序。
+- 刪除使用中的 code 會提示「目前有 N 張卡/庫存使用中」，確認後仍可刪（軟參照），受影響資料在卡片管理頁標示待修正。
+
+### 手動新增缺漏的卡
+- 來源缺某張卡時，admin 可**手動建立** `PokemonCard`（指定 id、語言、套系、卡號、卡名、圖、rarity…），之後即可進貨與被敲碗。
+- id 格式沿用 `"{language}:{setId}-{number}"` 慣例；建立前檢查 id 不重複。
+
+### 庫存↔目錄一致性
+- 建立庫存（Listing）時 `cardId` 必須對應到既有 `PokemonCard.id`；不符則擋下並提示，避免產生「孤兒庫存」（前台 join 不到目錄卡）。
+- 後台提供「孤兒庫存檢查」：列出 `cardId` 找不到對應 `PokemonCard` 的 Listing，供手動修正或補建目錄卡。
+
 ## API 端點
 
 ### 目錄瀏覽（前台）
@@ -148,6 +211,18 @@ model Notification {
   → 更新；若數量由 0→正數觸發補貨通知檢查。
 - `DELETE /admin/inventory/:listingId`
 - `GET /admin/wishlist?cardId=` — 某卡的敲碗名單。
+- `PATCH /admin/cards/:id` `{ name?, number?, rarity?, image?, imageHigh?, seriesKey?, seriesName?, setId?, setName?, types?, hp?, supertype? }` — 手動修正目錄卡欄位。
+- `POST /admin/cards` `{ id, language, setId, setName, seriesKey, seriesName, number, name, image, rarity?, ... }` — 手動新增缺漏目錄卡（檢查 id 不重複）。
+- `GET /admin/orphan-listings` — 列出 `cardId` 對不到 `PokemonCard` 的庫存。
+
+參照資料 CRUD（需 admin）：
+- 稀有度：`GET /admin/rarities`、`POST /admin/rarities`、`PATCH /admin/rarities/:id`、`DELETE /admin/rarities/:id`
+- 系列：`GET /admin/series-defs?language=`、`POST /admin/series-defs`、`PATCH /admin/series-defs/:id`、`DELETE /admin/series-defs/:id`
+- 品相：`GET /admin/conditions`、`POST /admin/conditions`、`PATCH /admin/conditions/:id`、`DELETE /admin/conditions/:id`
+- 刪除前回傳 `inUseCount`（使用該 code 的卡/庫存數）供前端提示。
+
+前台讀取參照資料（公開）：
+- `GET /catalog/rarities`、`GET /catalog/conditions`（給徽章顏色/排序/品相標籤用；series 已由 `/catalog/series` 提供）。
 
 ## 賣家模式（範圍界定）
 - **現在**：admin 獨家經營，前台純購買。
@@ -167,3 +242,10 @@ model Notification {
 - 補貨通知：0→正數觸發、正數→正數不重複觸發、缺貨後再敲可再次觸發。
 - 後台 inline 改價/改量後彙整即時反映。
 - 權限：敲碗/通知需登入；admin 端點需 admin。
+- 後台修目錄卡欄位後，前台彙整/徽章/排序即時反映。
+- 建立 `cardId` 對不到目錄卡的庫存會被擋下；孤兒庫存檢查能正確列出。
+- 手動新增目錄卡：id 重複會被擋；新增後可進貨並被敲碗。
+- 換圖：上傳後 `PokemonCard.image` 更新，前台顯示新圖。
+- 參照資料 CRUD：稀有度/系列/品相新增後出現在卡片編輯下拉；刪除使用中 code 回報 `inUseCount` 且不連鎖損壞既有資料。
+- seed migration：現有 rarity/series/condition distinct 值正確匯入三張參照表。
+- 徽章顏色與排序由 `Rarity` 參照表驅動（改顏色/排序前台即時反映）。
