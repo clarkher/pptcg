@@ -8,6 +8,20 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  deploy-backend-staging:
+    name: Deploy Backend → Railway Staging (Singapore)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy backend to staging service
+        run: railway up backend --path-as-root --service ${{ secrets.RAILWAY_STAGING_SERVICE_ID }} --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_ENVIRONMENT_ID: ${{ secrets.RAILWAY_PROD_ENV_ID }}
+
   deploy-frontend:
     name: Deploy Frontend → Vercel Dev Preview
     runs-on: ubuntu-latest
@@ -25,7 +39,8 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          # 測試站打測試後端（Railway staging, 新加坡 → Neon dev 分支），不碰正式資料
+          VITE_API_URL: https://pptcg-backend-staging-production.up.railway.app/api
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
       - name: Prepare Vercel prebuilt output
         working-directory: frontend
