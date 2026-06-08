@@ -14,6 +14,7 @@
     "seed:refdata": "ts-node prisma/seed-refdata.ts",
     "scrape:pokemon": "ts-node scripts/scrape-pokemon.ts",
     "scrape:pokemon:multi": "ts-node scripts/scrape-pokemon-multilang.ts",
+    "scrape:tw": "ts-node scripts/scrape-tw-official.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -22,6 +23,7 @@
     "@types/multer": "^2.1.0",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
+    "cheerio": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
