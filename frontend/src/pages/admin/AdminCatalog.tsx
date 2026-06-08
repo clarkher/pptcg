@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
 import { catalogApi } from '../../api/catalog';
 import { uploadImage } from '../../api/upload';
@@ -19,10 +20,11 @@ const chip = (active: boolean): React.CSSProperties => ({
 });
 
 export function AdminCatalog() {
-  const [language, setLanguage] = useState('zh');
+  const [searchParams] = useSearchParams();
+  const [language, setLanguage] = useState(searchParams.get('lang') || 'zh');
   const [seriesKey, setSeriesKey] = useState('');
   const [setId, setSetId] = useState('');
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(searchParams.get('q') || '');
   const [hasWishlist, setHasWishlist] = useState(false);
   const [stockFilter, setStockFilter] = useState<'' | 'true' | 'false'>('');
   const [cards, setCards] = useState<AdminCatalogCard[]>([]);

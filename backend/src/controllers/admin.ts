@@ -253,6 +253,53 @@ export async function adminCardWishlist(req: AuthRequest, res: Response) {
   res.json(list);
 }
 
+// 敲碗總覽：跨卡彙整，依敲碗人數排序
+export async function adminWishlistOverview(_req: AuthRequest, res: Response) {
+  const grouped = await prisma.wishlist.groupBy({
+    by: ['cardId'],
+    _count: { id: true },
+    orderBy: { _count: { id: 'desc' } },
+  });
+  const cardIds = grouped.map((g) => g.cardId);
+  if (cardIds.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const cards = await prisma.pokemonCard.findMany({ where: { id: { in: cardIds } } });
+  const cardMap = new Map(cards.map((c) => [c.id, c]));
+  // Wishlist 自帶 denormalized 卡資訊，作為目錄查不到時的 fallback
+  const wlInfo = await prisma.wishlist.findMany({
+    where: { cardId: { in: cardIds } },
+    distinct: ['cardId'],
+    select: { cardId: true, cardName: true, cardImage: true, language: true },
+  });
+  const wlMap = new Map(wlInfo.map((w) => [w.cardId, w]));
+  const stock = await prisma.listing.groupBy({
+    by: ['cardId'],
+    where: { cardId: { in: cardIds }, status: 'active' },
+    _sum: { quantity: true },
+  });
+  const stockMap = new Map(stock.map((s) => [s.cardId, s._sum.quantity ?? 0]));
+
+  res.json(grouped.map((g) => {
+    const c = cardMap.get(g.cardId);
+    const w = wlMap.get(g.cardId);
+    return {
+      cardId: g.cardId,
+      cardName: c?.name ?? w?.cardName ?? '',
+      cardImage: c?.imageHigh || c?.image || w?.cardImage || '',
+      language: c?.language ?? w?.language ?? '',
+      rarity: c?.rarity ?? null,
+      setName: c?.setName ?? '',
+      seriesKey: c?.seriesKey ?? '',
+      setId: c?.setId ?? '',
+      wishlistCount: g._count.id,
+      totalQty: stockMap.get(g.cardId) ?? 0,
+    };
+  }));
+}
+
 // ── Catalog 卡片資料編輯/新增/孤兒檢查 ────────────────────
 
 const CARD_FIELDS = ['name','number','rarity','image','imageHigh','seriesKey','seriesName','setId','setName','types','hp','supertype'] as const;

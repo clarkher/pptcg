@@ -5,7 +5,7 @@ import {
   adminGetListings, adminCreateListing, adminUpdateListing, adminDeleteListing,
   adminGetOrders, adminUpdateOrder, adminGetStats,
   adminCreateInventory, adminUpdateInventory, adminDeleteInventory,
-  adminCatalog, adminCardWishlist,
+  adminCatalog, adminCardWishlist, adminWishlistOverview,
   adminUpdateCard, adminCreateCard, adminOrphanListings,
 } from '../controllers/admin';
 import {
@@ -45,6 +45,7 @@ router.post('/inventory', ...guard, adminCreateInventory);
 router.patch('/inventory/:id', ...guard, adminUpdateInventory);
 router.delete('/inventory/:id', ...guard, adminDeleteInventory);
 router.get('/wishlist', ...guard, adminCardWishlist);
+router.get('/wishlist-overview', ...guard, adminWishlistOverview);
 router.post('/cards', ...guard, adminCreateCard);
 router.patch('/cards/:id', ...guard, adminUpdateCard);
 router.get('/orphan-listings', ...guard, adminOrphanListings);

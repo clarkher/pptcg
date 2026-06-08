@@ -38,6 +38,7 @@ export const adminApi = {
   updateInventory: (id: string, data: Record<string, unknown>) => api.patch(`/admin/inventory/${id}`, data).then((r) => r.data),
   deleteInventory: (id: string) => api.delete(`/admin/inventory/${id}`).then((r) => r.data),
   cardWishlist: (cardId: string) => api.get('/admin/wishlist', { params: { cardId } }).then((r) => r.data),
+  wishlistOverview: () => api.get('/admin/wishlist-overview').then((r) => r.data),
   updateCard: (id: string, data: Record<string, unknown>) => api.patch(`/admin/cards/${encodeURIComponent(id)}`, data).then((r) => r.data),
   createCard: (data: Record<string, unknown>) => api.post('/admin/cards', data).then((r) => r.data),
   orphanListings: () => api.get('/admin/orphan-listings').then((r) => r.data),

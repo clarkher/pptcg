@@ -15,6 +15,7 @@ import { AdminListings } from './pages/admin/AdminListings';
 import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminCatalog } from './pages/admin/AdminCatalog';
 import { AdminRefData } from './pages/admin/AdminRefData';
+import { AdminWishlist } from './pages/admin/AdminWishlist';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="catalog" element={<AdminCatalog />} />
+            <Route path="wishlist" element={<AdminWishlist />} />
             <Route path="listings" element={<AdminListings />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="refdata" element={<AdminRefData />} />
