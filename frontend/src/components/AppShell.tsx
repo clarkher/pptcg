@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { NotificationBell } from './NotificationBell';
 import brandLogo from '../assets/brand-logo.png';
 
 const NAV = [
@@ -247,6 +248,7 @@ export function AppShell({ children }: Props) {
 
       {/* ── Main content ─────────────── */}
       <main style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        <NotificationBell />
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           {children}
         </div>

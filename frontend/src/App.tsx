@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { Home } from './pages/Home';
-import { Market } from './pages/Market';
+import { Browse } from './pages/Browse';
+import { CardDetail } from './pages/CardDetail';
 import { Orders } from './pages/Orders';
 import { Profile } from './pages/Profile';
 import { Login } from './pages/Login';
@@ -36,7 +37,8 @@ function App() {
             <AppShell>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/market" element={<Market />} />
+                <Route path="/market" element={<Browse />} />
+                <Route path="/card/:id" element={<CardDetail />} />
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/listing/:id" element={<ListingDetail />} />
