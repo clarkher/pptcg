@@ -7,10 +7,15 @@ import type { AdminCatalogCard, AdminInventoryRow, RarityDef, ConditionDef } fro
 
 const inputStyle: React.CSSProperties = {
   background: '#0D0D1C', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6,
-  color: '#F1F5F9', padding: '5px 8px', fontSize: 12, width: '100%', boxSizing: 'border-box',
+  color: '#F1F5F9', padding: '6px 8px', fontSize: 12, width: '100%', boxSizing: 'border-box',
 };
 const btn = (bg: string): React.CSSProperties => ({
-  padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: bg, color: '#fff',
+  padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: bg, color: '#fff',
+});
+const chip = (active: boolean): React.CSSProperties => ({
+  padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+  background: active ? 'linear-gradient(135deg,#7C3AED,#4F46E5)' : 'rgba(255,255,255,0.05)',
+  color: active ? '#fff' : '#94A3B8',
 });
 
 export function AdminCatalog() {
@@ -60,7 +65,7 @@ export function AdminCatalog() {
         <button onClick={() => setHasWishlist((v) => !v)} style={btn(hasWishlist ? '#2563EB' : 'rgba(255,255,255,0.06)')}>
           {hasWishlist ? '☑' : '☐'} 有人敲碗
         </button>
-        <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value as any)} style={{ ...inputStyle, width: 130 }}>
+        <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value as '' | 'true' | 'false')} style={{ ...inputStyle, width: 130 }}>
           <option value="">全部庫存</option>
           <option value="true">有庫存</option>
           <option value="false">無庫存</option>
@@ -103,61 +108,82 @@ export function AdminCatalog() {
 }
 
 // ── Edit modal ──────────────────────────────────────────────
+interface CellState { price: string; qty: string; id?: string; saving?: boolean; saved?: boolean }
+
 function CardEditModal({ card, rarities, conditions, onClose, onChanged }: {
   card: AdminCatalogCard; rarities: RarityDef[]; conditions: ConditionDef[];
   onClose: () => void; onChanged: () => void;
 }) {
-  const [inv, setInv] = useState<AdminInventoryRow[]>(card.inventory);
+  const [tab, setTab] = useState<'inv' | 'data' | 'wish'>('inv');
+
+  // 庫存：以 (variant|condition) 為 key 的草稿表
+  const cellKey = (v: string, c: string) => `${v}|${c}`;
+  const [draft, setDraft] = useState<Record<string, CellState>>(() => {
+    const d: Record<string, CellState> = {};
+    for (const r of card.inventory) d[cellKey(r.variant, r.condition)] = { price: String(r.price), qty: String(r.quantity), id: r.id };
+    return d;
+  });
+  const [variants, setVariants] = useState<string[]>(() => {
+    const s = new Set<string>(['標準']);
+    card.inventory.forEach((r) => s.add(r.variant));
+    return [...s];
+  });
+  const [activeVariant, setActiveVariant] = useState(variants[0]);
+
+  const getCell = (v: string, c: string): CellState => draft[cellKey(v, c)] || { price: '', qty: '' };
+  const setCell = (v: string, c: string, patch: Partial<CellState>) =>
+    setDraft((p) => ({ ...p, [cellKey(v, c)]: { ...getCell(v, c), ...patch } }));
+
+  const saveCell = async (v: string, c: string) => {
+    const cell = getCell(v, c);
+    const price = parseFloat(cell.price) || 0;
+    const qty = parseInt(cell.qty) || 0;
+    if (!cell.id && price <= 0 && qty <= 0) return; // 空格不建立
+    setCell(v, c, { saving: true, saved: false });
+    try {
+      if (cell.id) {
+        await adminApi.updateInventory(cell.id, { price, quantity: qty, variant: v, condition: c });
+      } else {
+        const created = await adminApi.createInventory({
+          cardId: card.id, cardName: card.name, cardGame: 'pokemon',
+          cardImage: card.imageHigh || card.image, language: card.language,
+          variant: v, condition: c, price, quantity: qty,
+        }) as AdminInventoryRow;
+        setCell(v, c, { id: created.id });
+      }
+      setCell(v, c, { saving: false, saved: true });
+      onChanged();
+    } catch {
+      setCell(v, c, { saving: false });
+    }
+  };
+
+  const delCell = async (v: string, c: string) => {
+    const cell = getCell(v, c);
+    if (cell.id) { await adminApi.deleteInventory(cell.id); onChanged(); }
+    setCell(v, c, { price: '', qty: '', id: undefined, saved: false });
+  };
+
+  const addVariant = () => {
+    const name = window.prompt('變體名稱（例：反射閃 / 異圖 / 金卡）');
+    if (!name) return;
+    if (!variants.includes(name)) setVariants((p) => [...p, name]);
+    setActiveVariant(name);
+  };
+
+  // 資料/換圖
   const [image, setImage] = useState(card.image);
   const [name, setName] = useState(card.name);
   const [rarity, setRarity] = useState(card.rarity || '');
-  const [tab, setTab] = useState<'inv' | 'data' | 'wish'>('inv');
-  const [wishers, setWishers] = useState<{ id: string; user: { username: string; email: string }; createdAt: string }[]>([]);
-  const [newVariant, setNewVariant] = useState('標準');
-  const [newCond, setNewCond] = useState(conditions[0]?.code || 'NM');
-  const [newPrice, setNewPrice] = useState('');
-  const [newQty, setNewQty] = useState('1');
   const [busy, setBusy] = useState(false);
+  const saveData = async () => { setBusy(true); try { await adminApi.updateCard(card.id, { name, rarity: rarity || null, image }); onChanged(); } finally { setBusy(false); } };
+  const onUpload = async (file: File) => { setBusy(true); try { const url = await uploadImage(file); setImage(url); await adminApi.updateCard(card.id, { image: url }); onChanged(); } finally { setBusy(false); } };
 
+  // 敲碗名單
+  const [wishers, setWishers] = useState<{ id: string; user: { username: string; email: string }; createdAt: string }[]>([]);
   useEffect(() => {
-    if (tab === 'wish') adminApi.cardWishlist(card.id).then((d) => setWishers(d as any)).catch(() => setWishers([]));
+    if (tab === 'wish') adminApi.cardWishlist(card.id).then((d) => setWishers(d as typeof wishers)).catch(() => setWishers([]));
   }, [tab, card.id]);
-
-  const saveInvRow = async (row: AdminInventoryRow) => {
-    await adminApi.updateInventory(row.id, { price: row.price, quantity: row.quantity, variant: row.variant, condition: row.condition });
-    onChanged();
-  };
-  const delInvRow = async (id: string) => {
-    await adminApi.deleteInventory(id);
-    setInv((p) => p.filter((r) => r.id !== id));
-    onChanged();
-  };
-  const addInv = async () => {
-    if (!newPrice) return;
-    setBusy(true);
-    try {
-      const created = await adminApi.createInventory({
-        cardId: card.id, cardName: card.name, cardGame: 'pokemon', cardImage: card.imageHigh || card.image,
-        language: card.language, variant: newVariant, condition: newCond, price: parseFloat(newPrice), quantity: parseInt(newQty) || 0,
-      }) as AdminInventoryRow;
-      setInv((p) => [...p, created]);
-      setNewPrice(''); setNewQty('1');
-      onChanged();
-    } finally { setBusy(false); }
-  };
-  const saveData = async () => {
-    await adminApi.updateCard(card.id, { name, rarity: rarity || null, image });
-    onChanged();
-  };
-  const onUpload = async (file: File) => {
-    setBusy(true);
-    try {
-      const url = await uploadImage(file);
-      setImage(url);
-      await adminApi.updateCard(card.id, { image: url });
-      onChanged();
-    } finally { setBusy(false); }
-  };
 
   const tabBtn = (key: typeof tab, label: string) => (
     <button onClick={() => setTab(key)} style={{
@@ -168,12 +194,15 @@ function CardEditModal({ card, rarities, conditions, onClose, onChanged }: {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: '#0A0A18', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: 560, maxWidth: '100%', maxHeight: '88vh', overflowY: 'auto', padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: '#0A0A18', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: 600, maxWidth: '100%', maxHeight: '88vh', overflowY: 'auto', padding: 20 }}>
         <div style={{ display: 'flex', gap: 14, marginBottom: 16 }}>
           <img src={image || card.imageHigh || ''} alt={card.name} style={{ width: 100, aspectRatio: '3/4', objectFit: 'contain', background: '#09091a', borderRadius: 8 }} />
           <div style={{ flex: 1 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#F8FAFC' }}>{card.name}</h3>
-            <p style={{ fontSize: 11, color: '#475569', marginBottom: 8 }}>{card.id}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {card.rarity && <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: rarities.find((r) => r.code === card.rarity)?.color || '#64748b', padding: '1px 6px', borderRadius: 4 }}>{card.rarity}</span>}
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: '#F8FAFC' }}>{card.name}</h3>
+            </div>
+            <p style={{ fontSize: 11, color: '#475569', margin: '2px 0 8px' }}>{card.number} · {card.setName}</p>
             <div style={{ display: 'flex', gap: 4 }}>
               {tabBtn('inv', '庫存')}
               {tabBtn('data', '資料/換圖')}
@@ -184,27 +213,38 @@ function CardEditModal({ card, rarities, conditions, onClose, onChanged }: {
 
         {tab === 'inv' && (
           <div>
-            {inv.length === 0 && <p style={{ fontSize: 12, color: '#475569', marginBottom: 10 }}>尚無庫存，新增一筆變體。</p>}
-            {inv.map((row, i) => (
-              <div key={row.id} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
-                <input value={row.variant} onChange={(e) => setInv((p) => p.map((r, j) => j === i ? { ...r, variant: e.target.value } : r))} style={{ ...inputStyle, width: 90 }} />
-                <select value={row.condition} onChange={(e) => setInv((p) => p.map((r, j) => j === i ? { ...r, condition: e.target.value } : r))} style={{ ...inputStyle, width: 70 }}>
-                  {conditions.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
-                </select>
-                <input type="number" value={row.price} onChange={(e) => setInv((p) => p.map((r, j) => j === i ? { ...r, price: parseFloat(e.target.value) || 0 } : r))} onBlur={() => saveInvRow(row)} style={{ ...inputStyle, width: 80 }} placeholder="價格" />
-                <input type="number" value={row.quantity} onChange={(e) => setInv((p) => p.map((r, j) => j === i ? { ...r, quantity: parseInt(e.target.value) || 0 } : r))} onBlur={() => saveInvRow(row)} style={{ ...inputStyle, width: 60 }} placeholder="數量" />
-                <button onClick={() => delInvRow(row.id)} style={btn('rgba(239,68,68,0.15)')}>✕</button>
-              </div>
-            ))}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 10, paddingTop: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input value={newVariant} onChange={(e) => setNewVariant(e.target.value)} style={{ ...inputStyle, width: 90 }} placeholder="變體" />
-              <select value={newCond} onChange={(e) => setNewCond(e.target.value)} style={{ ...inputStyle, width: 70 }}>
-                {conditions.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
-              </select>
-              <input type="number" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} style={{ ...inputStyle, width: 80 }} placeholder="價格" />
-              <input type="number" value={newQty} onChange={(e) => setNewQty(e.target.value)} style={{ ...inputStyle, width: 60 }} placeholder="數量" />
-              <button disabled={busy} onClick={addInv} style={btn('#7C3AED')}>+ 新增</button>
+            {/* 變體分頁 */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              {variants.map((v) => (
+                <button key={v} onClick={() => setActiveVariant(v)} style={chip(activeVariant === v)}>{v}</button>
+              ))}
+              <button onClick={addVariant} style={{ ...chip(false), color: '#A78BFA' }}>＋ 變體</button>
             </div>
+
+            {/* 品相表格：每列一個品相，填價格＋數量 */}
+            <div style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 90px 36px', gap: 0, fontSize: 11, fontWeight: 700, color: '#64748B', background: '#0D0D1C', padding: '8px 12px' }}>
+                <span>品相</span><span>價格 NT$</span><span>數量</span><span></span>
+              </div>
+              {conditions.map((c) => {
+                const cell = getCell(activeVariant, c.code);
+                return (
+                  <div key={c.code} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 90px 36px', gap: 8, alignItems: 'center', padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: 12, color: '#E2E8F0' }}>{c.label}</span>
+                    <input type="number" value={cell.price} placeholder="—"
+                      onChange={(e) => setCell(activeVariant, c.code, { price: e.target.value })}
+                      onBlur={() => saveCell(activeVariant, c.code)} style={inputStyle} />
+                    <input type="number" value={cell.qty} placeholder="0"
+                      onChange={(e) => setCell(activeVariant, c.code, { qty: e.target.value })}
+                      onBlur={() => saveCell(activeVariant, c.code)} style={inputStyle} />
+                    <span style={{ fontSize: 14, textAlign: 'center' }}>
+                      {cell.saving ? '⏳' : cell.saved ? '✓' : cell.id ? <button onClick={() => delCell(activeVariant, c.code)} style={{ background: 'none', border: 'none', color: '#F87171', cursor: 'pointer', fontSize: 13 }}>✕</button> : ''}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: 11, color: '#475569', marginTop: 8 }}>填好價格／數量後點其他地方即自動儲存。同卡號的不同印刷（反射閃／異圖…）用上方「＋ 變體」分頁。不同稀有度版本通常是不同卡號，請各自進貨。</p>
           </div>
         )}
 
