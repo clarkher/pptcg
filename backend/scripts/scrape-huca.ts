@@ -190,35 +190,52 @@ async function scrapePrices(cards: CardRef[]) {
       continue;
     }
 
-    await prisma.hucaCard.upsert({
-      where:  { id: hucaId },
-      update: {
-        nameZh:          priceData.nameZh,
-        sku:             priceData.sku,
-        cardNumber:      priceData.cardNumber,
-        slug,
-        lowPriceTwd:     priceData.lowPriceTwd,
-        highPriceTwd:    priceData.highPriceTwd,
-        offerCount:      priceData.offerCount,
-        priceValidUntil: priceData.priceValidUntil,
-        priceUpdatedAt:  new Date(),
-      },
-      create: {
-        id:              hucaId,
-        setCode,
-        cardNumber:      priceData.cardNumber,
-        nameZh:          priceData.nameZh,
-        sku:             priceData.sku,
-        slug,
-        lowPriceTwd:     priceData.lowPriceTwd,
-        highPriceTwd:    priceData.highPriceTwd,
-        offerCount:      priceData.offerCount,
-        priceValidUntil: priceData.priceValidUntil,
-        priceUpdatedAt:  new Date(),
-      },
-    });
-
-    saved++;
+    try {
+      await prisma.hucaCard.upsert({
+        where:  { id: hucaId },
+        update: {
+          nameZh:          priceData.nameZh,
+          sku:             priceData.sku,
+          cardNumber:      priceData.cardNumber,
+          slug,
+          lowPriceTwd:     priceData.lowPriceTwd,
+          highPriceTwd:    priceData.highPriceTwd,
+          offerCount:      priceData.offerCount,
+          priceValidUntil: priceData.priceValidUntil,
+          priceUpdatedAt:  new Date(),
+        },
+        create: {
+          id:              hucaId,
+          setCode,
+          cardNumber:      priceData.cardNumber,
+          nameZh:          priceData.nameZh,
+          sku:             priceData.sku,
+          slug,
+          lowPriceTwd:     priceData.lowPriceTwd,
+          highPriceTwd:    priceData.highPriceTwd,
+          offerCount:      priceData.offerCount,
+          priceValidUntil: priceData.priceValidUntil,
+          priceUpdatedAt:  new Date(),
+        },
+      });
+      saved++;
+    } catch (e: any) {
+      if (e?.code === 'P2002') {
+        // Duplicate SKU — same card registered under multiple IDs; update by ID only (no sku change)
+        await prisma.hucaCard.update({
+          where: { id: hucaId },
+          data: {
+            lowPriceTwd: priceData.lowPriceTwd, highPriceTwd: priceData.highPriceTwd,
+            offerCount: priceData.offerCount, priceValidUntil: priceData.priceValidUntil,
+            priceUpdatedAt: new Date(),
+          },
+        }).catch(() => {}); // if row doesn't exist yet, silently skip
+        skipped++;
+      } else {
+        fetchError++;
+        console.error(`\n  ⚠️  DB error for ID ${hucaId}:`, e?.message ?? e);
+      }
+    }
     await sleep(DELAY_MS);
   }
 
