@@ -336,3 +336,45 @@ export async function adminOrphanListings(_req: AuthRequest, res: Response) {
   const known = new Set(cards.map((c) => c.id));
   res.json(listings.filter((l) => !known.has(l.cardId)));
 }
+
+// ── Settings (LINE credentials, etc.) ─────────────────────────
+
+// Sensitive keys whose values are masked in GET response
+const MASKED_KEYS = new Set(['LINE_CHANNEL_SECRET', 'LINE_CHANNEL_ACCESS_TOKEN']);
+
+export async function adminGetSettings(_req: AuthRequest, res: Response) {
+  const settings = await prisma.setting.findMany({ orderBy: { key: 'asc' } });
+  res.json(settings.map(s => ({
+    key: s.key,
+    value: MASKED_KEYS.has(s.key) ? (s.value ? '••••••' + s.value.slice(-4) : '') : s.value,
+    updatedAt: s.updatedAt,
+    hasValue: !!s.value,
+  })));
+}
+
+export async function adminUpsertSetting(req: AuthRequest, res: Response) {
+  const key = req.params.key as string;
+  const { value } = req.body;
+  if (!key || value === undefined) { res.status(400).json({ error: 'key and value required' }); return; }
+  const setting = await prisma.setting.upsert({
+    where: { key: key },
+    update: { value: String(value) },
+    create: { key: key, value: String(value) },
+  });
+  res.json({ key: setting.key, updatedAt: setting.updatedAt });
+}
+
+// Generate a 6-char binding code for LINE account linking
+export async function adminGenLineBindToken(req: AuthRequest, res: Response) {
+  const userId = (req as any).user?.id;
+  if (!userId) { res.status(401).json({ error: 'unauthorized' }); return; }
+
+  // Expire old tokens for this user
+  await prisma.lineBindToken.deleteMany({ where: { userId } });
+
+  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  await prisma.lineBindToken.create({ data: { code, userId, expiresAt } });
+
+  res.json({ code, expiresAt });
+}

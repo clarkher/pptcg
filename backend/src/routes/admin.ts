@@ -7,6 +7,7 @@ import {
   adminCreateInventory, adminUpdateInventory, adminDeleteInventory,
   adminCatalog, adminCardWishlist, adminWishlistOverview,
   adminUpdateCard, adminCreateCard, adminOrphanListings,
+  adminGetSettings, adminUpsertSetting, adminGenLineBindToken,
 } from '../controllers/admin';
 import {
   listRarities, createRarity, updateRarity, deleteRarity,
@@ -49,5 +50,10 @@ router.get('/wishlist-overview', ...guard, adminWishlistOverview);
 router.post('/cards', ...guard, adminCreateCard);
 router.patch('/cards/:id', ...guard, adminUpdateCard);
 router.get('/orphan-listings', ...guard, adminOrphanListings);
+
+// Settings & LINE
+router.get('/settings', ...guard, adminGetSettings);
+router.put('/settings/:key', ...guard, adminUpsertSetting);
+router.post('/line/bind-token', authMiddleware, adminGenLineBindToken); // user-facing (not admin-only)
 
 export default router;
