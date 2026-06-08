@@ -1,14 +1,25 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Layers, Search } from 'lucide-react';
 import { listingsApi } from '../api/listings';
 import type { Listing, Game } from '../types';
 import { CardGrid } from '../components/CardGrid';
 import { SEOHead } from '../components/SEOHead';
+import yugiohIcon from '../assets/game-icons/yugioh-icon.png';
+import pokemonIcon from '../assets/game-icons/pokemon-icon.png';
 
-const TABS: { label: string; value: Game; emoji: string; color: string }[] = [
-  { label: '全部', value: 'all', emoji: '🃏', color: '#A78BFA' },
-  { label: '遊戲王', value: 'yugioh', emoji: '⚔️', color: '#FBBF24' },
-  { label: '寶可夢', value: 'pokemon', emoji: '⚡', color: '#F472B6' },
+const TABS: { label: string; value: Game; icon: ReactNode; color: string }[] = [
+  { label: '全部', value: 'all', icon: <Layers size={14} />, color: '#A78BFA' },
+  {
+    label: '遊戲王', value: 'yugioh',
+    icon: <img src={yugiohIcon} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />,
+    color: '#FBBF24',
+  },
+  {
+    label: '寶可夢', value: 'pokemon',
+    icon: <img src={pokemonIcon} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />,
+    color: '#F472B6',
+  },
 ];
 
 export function Market() {
@@ -91,7 +102,8 @@ export function Market() {
                   setSearchParams(tab.value !== 'all' ? { game: tab.value } : {});
                 }}
                 style={{
-                  flex: 1, padding: '9px 0', borderRadius: 14, fontSize: 12, fontWeight: 800,
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                  padding: '9px 0', borderRadius: 14, fontSize: 12, fontWeight: 800,
                   cursor: 'pointer', transition: 'all 0.15s', border: 'none',
                   background: active
                     ? 'linear-gradient(135deg,#7C3AED,#4F46E5)'
@@ -101,7 +113,7 @@ export function Market() {
                   boxShadow: active ? '0 0 20px rgba(124,58,237,0.4)' : 'none',
                 }}
               >
-                {tab.emoji} {tab.label}
+                {tab.icon} {tab.label}
               </button>
             );
           })}
@@ -117,7 +129,8 @@ export function Market() {
       {/* Grid */}
       <div style={{ padding: '0 16px' }}>
         <CardGrid listings={listings} loading={loading}
-          emptyText="找不到相符商品" emptySubText="換個關鍵字試試看" emptyIcon="🔍" />
+          emptyText="找不到相符商品" emptySubText="換個關鍵字試試看"
+          emptyIcon={<Search size={36} color="#475569" />} />
       </div>
     </div>
   );

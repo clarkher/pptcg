@@ -1,13 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useNavigate, useLocation, Outlet, Link } from 'react-router-dom';
+import { LayoutDashboard, Layers, Package, LayoutGrid, Settings } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
-const NAV = [
-  { path: '/admin',           label: '總覽',    icon: '⊡', exact: true },
-  { path: '/admin/catalog',   label: '卡片管理', icon: '🗂️' },
-  { path: '/admin/listings',  label: '商品管理', icon: '🃏' },
-  { path: '/admin/orders',    label: '訂單管理', icon: '📦' },
-  { path: '/admin/refdata',   label: '資料管理', icon: '⚙️' },
+const NAV: { path: string; label: string; icon: ReactNode; exact?: boolean }[] = [
+  { path: '/admin',           label: '總覽',    icon: <LayoutDashboard size={16} />, exact: true },
+  { path: '/admin/catalog',   label: '卡片管理', icon: <LayoutGrid size={16} /> },
+  { path: '/admin/listings',  label: '商品管理', icon: <Layers size={16} /> },
+  { path: '/admin/orders',    label: '訂單管理', icon: <Package size={16} /> },
+  { path: '/admin/refdata',   label: '資料管理', icon: <Settings size={16} /> },
 ];
 
 export function AdminLayout() {
@@ -50,7 +51,7 @@ export function AdminLayout() {
                 transition: 'all 0.1s',
                 borderLeft: active ? '2px solid #7C3AED' : '2px solid transparent',
               }}>
-                <span style={{ fontSize: 16 }}>{item.icon}</span>
+                <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
                 {item.label}
               </button>
             );

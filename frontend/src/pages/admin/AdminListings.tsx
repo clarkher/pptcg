@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Search, Layers } from 'lucide-react';
 import { adminApi } from '../../api/admin';
 import {
   pokemonApi, type PokemonCard, type CardLanguage,
@@ -156,7 +157,7 @@ export function AdminListings() {
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 14 }}>
-        <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#334155', fontSize: 14, pointerEvents: 'none' }}>🔍</span>
+        <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}><Search size={14} color="#334155" /></span>
         <input value={tableQ} onChange={e => setTableQ(e.target.value)} placeholder="搜尋商品名稱..."
           style={{ width: '100%', padding: '9px 14px 9px 36px', borderRadius: 9, background: '#111827', border: '1px solid rgba(255,255,255,0.07)', color: '#F1F5F9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
       </div>
@@ -226,7 +227,7 @@ export function AdminListings() {
                 </div>
                 {/* Search */}
                 <div style={{ flex: 1, position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#334155', pointerEvents: 'none', fontSize: 13 }}>🔍</span>
+                  <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}><Search size={13} color="#334155" /></span>
                   <input value={cardQ} onChange={e => { setCardQ(e.target.value); setSetId(null); }}
                     placeholder="直接搜尋卡牌名稱..." autoFocus
                     style={{ width: '100%', padding: '8px 12px 8px 32px', borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: '#F1F5F9', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
@@ -266,7 +267,7 @@ export function AdminListings() {
                     </div>
                   ) : cards.length === 0 ? (
                     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#1E293B', gap: 10 }}>
-                      <span style={{ fontSize: 48 }}>🃏</span>
+                      <Layers size={48} color="#1E293B" />
                       <p style={{ fontSize: 13 }}>選左側系列 或 直接搜尋卡牌</p>
                     </div>
                   ) : (
@@ -278,7 +279,7 @@ export function AdminListings() {
                           <div style={{ aspectRatio: '3/4', background: '#070712', position: 'relative' }}>
                             {card.image
                               ? <img src={card.image} alt={card.name} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} loading="lazy" />
-                              : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1E293B', fontSize: 28 }}>🃏</div>
+                              : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Layers size={28} color="#1E293B" /></div>
                             }
                             {card.rarity && (
                               <span style={{ position: 'absolute', bottom: 4, left: 4, fontSize: 8, fontWeight: 800, padding: '2px 5px', borderRadius: 4, color: rarityBadgeColor(card.rarity), background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', maxWidth: '90%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

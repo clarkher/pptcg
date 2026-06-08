@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Package } from 'lucide-react';
 import { ordersApi } from '../api/orders';
 import type { Order } from '../types';
 import { Header } from '../components/Header';
@@ -32,7 +33,9 @@ export function Orders() {
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', padding: '80px 0', textAlign: 'center',
           }}>
-            <div style={{ fontSize: 56, opacity: 0.15, marginBottom: 16 }}>📦</div>
+            <div style={{ marginBottom: 16, opacity: 0.15, display: 'flex', justifyContent: 'center' }}>
+              <Package size={56} color="#94A3B8" />
+            </div>
             <p style={{ color: '#94A3B8', fontWeight: 700, fontSize: 16, marginBottom: 6 }}>還沒有訂單</p>
             <p style={{ color: '#475569', fontSize: 13 }}>去市場逛逛，買張卡吧</p>
           </div>

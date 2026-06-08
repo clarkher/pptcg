@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 export function AdminLogin() {
@@ -53,7 +54,8 @@ export function AdminLogin() {
             borderRadius: 6, marginBottom: 16,
             background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.3)',
           }}>
-            <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase', color: '#7C3AED' }}>🔐 ADMIN PANEL</span>
+            <Lock size={10} color="#7C3AED" />
+            <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 2, textTransform: 'uppercase', color: '#7C3AED' }}>ADMIN PANEL</span>
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 900, color: '#F8FAFC', margin: '0 0 6px', letterSpacing: '-0.5px' }}>屁TCG 後台</h1>
           <p style={{ fontSize: 13, color: '#475569', margin: 0 }}>限管理員帳號登入</p>

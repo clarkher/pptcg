@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import type { Listing } from '../types';
 import cardPlaceholder from '../assets/card-placeholder.png';
+import yugiohIcon from '../assets/game-icons/yugioh-icon.png';
+import pokemonIcon from '../assets/game-icons/pokemon-icon.png';
 
 const COND_COLOR: Record<string, string> = {
   NM: '#34D399', LP: '#60A5FA', MP: '#FBBF24', HP: '#F87171',
@@ -8,9 +10,9 @@ const COND_COLOR: Record<string, string> = {
 const COND_LABEL: Record<string, string> = {
   NM: 'NM', LP: 'LP', MP: 'MP', HP: 'HP',
 };
-const GAME_STYLE: Record<string, { color: string; bg: string; label: string; glow: string }> = {
-  yugioh:  { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)',  label: '⚔️ 遊戲王', glow: 'rgba(251,191,36,0.25)' },
-  pokemon: { color: '#F472B6', bg: 'rgba(244,114,182,0.12)', label: '⚡ 寶可夢', glow: 'rgba(244,114,182,0.25)' },
+const GAME_STYLE: Record<string, { color: string; bg: string; icon: string; label: string; glow: string }> = {
+  yugioh:  { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)',  icon: yugiohIcon,  label: '遊戲王', glow: 'rgba(251,191,36,0.25)' },
+  pokemon: { color: '#F472B6', bg: 'rgba(244,114,182,0.12)', icon: pokemonIcon, label: '寶可夢', glow: 'rgba(244,114,182,0.25)' },
 };
 
 export function CardItem({ listing }: { listing: Listing }) {
@@ -77,13 +79,14 @@ export function CardItem({ listing }: { listing: Listing }) {
       <div style={{ padding: '10px 12px 12px', position: 'relative', zIndex: 5 }}>
         {/* Game badge */}
         <div style={{
-          display: 'inline-flex', alignItems: 'center',
+          display: 'inline-flex', alignItems: 'center', gap: 4,
           padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700,
           marginBottom: 6,
           color: game.color,
           background: game.bg,
           border: `1px solid ${game.color}33`,
         }}>
+          <img src={game.icon} alt="" style={{ width: 10, height: 10, objectFit: 'contain' }} />
           {game.label}
         </div>
 
