@@ -13,6 +13,8 @@ import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminListings } from './pages/admin/AdminListings';
 import { AdminOrders } from './pages/admin/AdminOrders';
+import { AdminCatalog } from './pages/admin/AdminCatalog';
+import { AdminRefData } from './pages/admin/AdminRefData';
 
 function App() {
   return (
@@ -28,8 +30,10 @@ function App() {
           {/* Admin — own layout */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
+            <Route path="catalog" element={<AdminCatalog />} />
             <Route path="listings" element={<AdminListings />} />
             <Route path="orders" element={<AdminOrders />} />
+            <Route path="refdata" element={<AdminRefData />} />
           </Route>
 
           {/* Main app — uses AppShell (sidebar on desktop, bottom nav on mobile) */}

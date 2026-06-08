@@ -4,8 +4,10 @@ import { useAuthStore } from '../../stores/authStore';
 
 const NAV = [
   { path: '/admin',           label: '總覽',    icon: '⊡', exact: true },
+  { path: '/admin/catalog',   label: '卡片管理', icon: '🗂️' },
   { path: '/admin/listings',  label: '商品管理', icon: '🃏' },
   { path: '/admin/orders',    label: '訂單管理', icon: '📦' },
+  { path: '/admin/refdata',   label: '資料管理', icon: '⚙️' },
 ];
 
 export function AdminLayout() {
