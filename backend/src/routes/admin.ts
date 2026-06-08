@@ -4,6 +4,9 @@ import { adminMiddleware } from '../middleware/admin';
 import {
   adminGetListings, adminCreateListing, adminUpdateListing, adminDeleteListing,
   adminGetOrders, adminUpdateOrder, adminGetStats,
+  adminCreateInventory, adminUpdateInventory, adminDeleteInventory,
+  adminCatalog, adminCardWishlist,
+  adminUpdateCard, adminCreateCard, adminOrphanListings,
 } from '../controllers/admin';
 import {
   listRarities, createRarity, updateRarity, deleteRarity,
@@ -36,5 +39,14 @@ router.get('/series-defs', ...guard, listSeriesDefs);
 router.post('/series-defs', ...guard, createSeriesDef);
 router.patch('/series-defs/:id', ...guard, updateSeriesDef);
 router.delete('/series-defs/:id', ...guard, deleteSeriesDef);
+
+router.get('/catalog', ...guard, adminCatalog);
+router.post('/inventory', ...guard, adminCreateInventory);
+router.patch('/inventory/:id', ...guard, adminUpdateInventory);
+router.delete('/inventory/:id', ...guard, adminDeleteInventory);
+router.get('/wishlist', ...guard, adminCardWishlist);
+router.post('/cards', ...guard, adminCreateCard);
+router.patch('/cards/:id', ...guard, adminUpdateCard);
+router.get('/orphan-listings', ...guard, adminOrphanListings);
 
 export default router;
