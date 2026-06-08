@@ -14,6 +14,10 @@
     "seed:refdata": "ts-node prisma/seed-refdata.ts",
     "scrape:pokemon": "ts-node scripts/scrape-pokemon.ts",
     "scrape:pokemon:multi": "ts-node scripts/scrape-pokemon-multilang.ts",
+    "scrape:huca": "ts-node scripts/scrape-huca.ts",
+    "scrape:huca:discover": "ts-node scripts/scrape-huca.ts discover",
+    "scrape:huca:prices": "ts-node scripts/scrape-huca.ts prices",
+    "scrape:huca:refresh": "ts-node scripts/scrape-huca.ts refresh",
     "test": "vitest run",
     "test:watch": "vitest"
   },

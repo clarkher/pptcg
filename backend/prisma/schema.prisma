@@ -140,3 +140,28 @@ model Condition {
   label     String
   sortOrder Int    @default(0)
 }
+
+// ─── Huca / 卡報報 ────────────────────────────────────────────
+// Card metadata & prices sourced from huca.tw (which aggregates Snkrdunk + eBay)
+// `id` = Snkrdunk product ID (used by Huca as their card ID, NOT sequential)
+
+model HucaCard {
+  id              Int       @id           // Snkrdunk product ID
+  setCode         String                  // e.g. "SV9a", "S12a", "SM6"
+  cardNumber      String                  // e.g. "084", "110"
+  nameZh          String                  // Chinese display name from Huca
+  sku             String    @unique       // e.g. "pkmn-tcg-SV9a-084" — matchable with 卡拍拍 listings
+  slug            String                  // URL slug for deep-linking to huca.tw
+  lowPriceTwd     Int?                    // Latest TWD low price (from Snkrdunk/eBay)
+  highPriceTwd    Int?                    // Latest TWD high price
+  offerCount      Int?                    // Recent transaction count (liquidity indicator)
+  priceValidUntil DateTime?               // When Huca's price snapshot expires (usually +7d)
+  priceUpdatedAt  DateTime?               // When we last successfully scraped a price
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([setCode])
+  @@index([sku])
+  @@index([priceValidUntil])
+  @@index([offerCount])
+}
