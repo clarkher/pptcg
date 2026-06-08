@@ -230,7 +230,7 @@ async function scrapePrices(cards: CardRef[]) {
             priceUpdatedAt: new Date(),
           },
         }).catch(() => {}); // if row doesn't exist yet, silently skip
-        skipped++;
+        noPriceData++;
       } else {
         fetchError++;
         console.error(`\n  ⚠️  DB error for ID ${hucaId}:`, e?.message ?? e);
