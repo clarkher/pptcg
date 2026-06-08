@@ -10,6 +10,7 @@ import uploadRoutes from './routes/upload';
 import catalogRoutes from './routes/catalog';
 import wishlistRoutes from './routes/wishlist';
 import notificationRoutes from './routes/notifications';
+import lineRoutes from './routes/line';
 
 const app = express();
 
@@ -30,6 +31,9 @@ app.use(cors({
   },
   credentials: true,
 }));
+// LINE webhook needs raw Buffer body for signature verification — must be BEFORE express.json()
+app.use('/api/line', express.raw({ type: 'application/json' }), lineRoutes);
+
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);

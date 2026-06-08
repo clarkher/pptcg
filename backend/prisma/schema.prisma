@@ -16,12 +16,24 @@ model User {
   avatar    String?
   wallet    Float     @default(1000)
   isAdmin   Boolean   @default(false)
+  lineUid   String?   @unique  // LINE User ID — set when user binds via binding code
   createdAt DateTime  @default(now())
   listings  Listing[]
   orders    Order[]   @relation("buyer")
   sales     Order[]   @relation("seller")
   wishlists     Wishlist[]
   notifications Notification[]
+}
+
+// Temporary tokens for binding LINE UID to a User account
+// Generated on website, entered in LINE Bot within 10 minutes
+model LineBindToken {
+  code      String   @id              // 6-char alphanumeric code shown to user
+  userId    String                    // The User waiting to be bound
+  expiresAt DateTime                  // 10 minutes from creation
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Listing {
@@ -139,6 +151,13 @@ model Condition {
   code      String @unique
   label     String
   sortOrder Int    @default(0)
+}
+
+// ─── Admin key-value settings (LINE credentials, etc.) ───────
+model Setting {
+  key       String   @id     // e.g. "LINE_CHANNEL_SECRET"
+  value     String           // Plain text — DB connection itself is secured
+  updatedAt DateTime @updatedAt
 }
 
 // ─── Huca / 卡報報 ────────────────────────────────────────────
