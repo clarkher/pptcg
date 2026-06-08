@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// API base URL (亦供少數需直接 fetch 的頁面使用，如後台設定)
+export const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  baseURL: apiBase,
 });
 
 api.interceptors.request.use((config) => {
