@@ -14,13 +14,12 @@ model User {
   password  String?
   googleId  String?   @unique
   avatar    String?
-  wallet    Float     @default(1000)
   isAdmin   Boolean   @default(false)
   lineUid   String?   @unique  // LINE User ID — set when user binds via binding code
   createdAt DateTime  @default(now())
   listings  Listing[]
   orders    Order[]   @relation("buyer")
-  sales     Order[]   @relation("seller")
+  cartItems CartItem[]
   wishlists     Wishlist[]
   notifications Notification[]
 }
@@ -52,7 +51,8 @@ model Listing {
   seller      User     @relation(fields: [sellerId], references: [id])
   status      String   @default("active")
   createdAt   DateTime @default(now())
-  orders      Order[]
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
 }
 
 // Each card entry is language-specific
@@ -83,17 +83,77 @@ model PokemonCard {
 }
 
 model Order {
+  id              String      @id @default(cuid())
+  merchantTradeNo String      @unique
+  buyerId         String
+  buyer           User        @relation("buyer", fields: [buyerId], references: [id])
+  items           OrderItem[]
+  total           Float
+
+  paymentMethod   String      // 'credit' | 'cvs' | 'cvs_cod'
+  paymentStatus   String      @default("pending")  // 'pending' | 'paid' | 'failed'
+  ecpayTradeNo    String?
+  cvsPaymentCode  String?
+  cvsExpireDate   String?
+
+  // 超商取貨付款 (CVS COD)
+  shippingType    String?     // 'UNIMART' | 'FAMI' | 'HILIFE'
+  storeId         String?
+  storeName       String?
+  logisticsId     String?     // ECPay AllPayLogisticsID
+  bookingNote     String?     // 出貨書號
+
+  receiverName    String?
+  receiverPhone   String?
+
+  status          String      @default("pending_payment")
+  // pending_payment | paid | shipped | completed | cancelled | refunded
+  refundedAt      DateTime?
+  refundNote      String?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model CartItem {
   id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   listingId String
   listing   Listing  @relation(fields: [listingId], references: [id])
-  buyerId   String
-  buyer     User     @relation("buyer", fields: [buyerId], references: [id])
-  sellerId  String
-  seller    User     @relation("seller", fields: [sellerId], references: [id])
-  quantity  Int
-  total     Float
-  status    String   @default("pending")
+  quantity  Int      @default(1)
   createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id])
+  quantity  Int
+  price     Float
+
+  @@index([orderId])
+}
+
+model PendingCheckout {
+  id            String   @id @default(cuid())
+  userId        String
+  cartSnapshot  Json     // CartItem[] snapshot
+  receiverName  String
+  receiverPhone String
+  shippingType  String   // 'UNIMART' | 'FAMI' | 'HILIFE'
+  storeId       String?
+  storeName     String?
+  storeAddress  String?
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Wishlist {
