@@ -16,12 +16,24 @@ model User {
   avatar    String?
   wallet    Float     @default(1000)
   isAdmin   Boolean   @default(false)
+  lineUid   String?   @unique  // LINE User ID — set when user binds via binding code
   createdAt DateTime  @default(now())
   listings  Listing[]
   orders    Order[]   @relation("buyer")
   sales     Order[]   @relation("seller")
   wishlists     Wishlist[]
   notifications Notification[]
+}
+
+// Temporary tokens for binding LINE UID to a User account
+// Generated on website, entered in LINE Bot within 10 minutes
+model LineBindToken {
+  code      String   @id              // 6-char alphanumeric code shown to user
+  userId    String                    // The User waiting to be bound
+  expiresAt DateTime                  // 10 minutes from creation
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Listing {
@@ -139,4 +151,36 @@ model Condition {
   code      String @unique
   label     String
   sortOrder Int    @default(0)
+}
+
+// ─── Admin key-value settings (LINE credentials, etc.) ───────
+model Setting {
+  key       String   @id     // e.g. "LINE_CHANNEL_SECRET"
+  value     String           // Plain text — DB connection itself is secured
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Huca / 卡報報 ────────────────────────────────────────────
+// Card metadata & prices sourced from huca.tw (which aggregates Snkrdunk + eBay)
+// `id` = Snkrdunk product ID (used by Huca as their card ID, NOT sequential)
+
+model HucaCard {
+  id              Int       @id           // Snkrdunk product ID
+  setCode         String                  // e.g. "SV9a", "S12a", "SM6"
+  cardNumber      String                  // e.g. "084", "110"
+  nameZh          String                  // Chinese display name from Huca
+  sku             String    @unique       // e.g. "pkmn-tcg-SV9a-084" — matchable with 卡拍拍 listings
+  slug            String                  // URL slug for deep-linking to huca.tw
+  lowPriceTwd     Int?                    // Latest TWD low price (from Snkrdunk/eBay)
+  highPriceTwd    Int?                    // Latest TWD high price
+  offerCount      Int?                    // Recent transaction count (liquidity indicator)
+  priceValidUntil DateTime?               // When Huca's price snapshot expires (usually +7d)
+  priceUpdatedAt  DateTime?               // When we last successfully scraped a price
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([setCode])
+  @@index([sku])
+  @@index([priceValidUntil])
+  @@index([offerCount])
 }

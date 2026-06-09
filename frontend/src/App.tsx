@@ -16,6 +16,7 @@ import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminCatalog } from './pages/admin/AdminCatalog';
 import { AdminRefData } from './pages/admin/AdminRefData';
 import { AdminWishlist } from './pages/admin/AdminWishlist';
+import AdminLineSettings from './pages/admin/AdminLineSettings';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
             <Route path="listings" element={<AdminListings />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="refdata" element={<AdminRefData />} />
+            <Route path="line-settings" element={<AdminLineSettings />} />
           </Route>
 
           {/* Main app — uses AppShell (sidebar on desktop, bottom nav on mobile) */}

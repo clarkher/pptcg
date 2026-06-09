@@ -10,6 +10,7 @@ import uploadRoutes from './routes/upload';
 import catalogRoutes from './routes/catalog';
 import wishlistRoutes from './routes/wishlist';
 import notificationRoutes from './routes/notifications';
+import lineRoutes from './routes/line';
 
 const app = express();
 
@@ -31,6 +32,9 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+
+// LINE routes (webhook raw body handling is per-route inside lineRoutes)
+app.use('/api/line', lineRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/cards', cardRoutes);

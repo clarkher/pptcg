@@ -1,8 +1,9 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, ClipboardList, Wallet } from 'lucide-react';
 import { Header } from '../components/Header';
 import { useAuthStore } from '../stores/authStore';
+import { api } from '../api/client';
 
 function NavRow({ icon, label, sub, onClick }: { icon: ReactNode; label: string; sub: string; onClick: () => void }) {
   return (
@@ -29,6 +30,198 @@ function NavRow({ icon, label, sub, onClick }: { icon: ReactNode; label: string;
     </button>
   );
 }
+
+// ── LINE subscription card ────────────────────────────────────
+
+interface BindToken { code: string; expiresAt: string }
+
+function LineSubscribeCard({ lineBound, onBindSuccess }: { lineBound: boolean; onBindSuccess: () => void }) {
+  const [bound, setBound]         = useState(lineBound);
+  const [token, setToken]         = useState<BindToken | null>(null);
+  const [loading, setLoading]     = useState(false);
+  const [unbinding, setUnbinding] = useState(false);
+  const [copied, setCopied]       = useState(false);
+  const [botLink, setBotLink]     = useState<string | null>(null);
+  const [secsLeft, setSecsLeft]   = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch bot link once
+  useEffect(() => {
+    api.get('/line/info').then(r => setBotLink(r.data.botLink)).catch(() => {});
+  }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!token) { setSecsLeft(0); return; }
+    const update = () => {
+      const diff = Math.max(0, Math.floor((new Date(token.expiresAt).getTime() - Date.now()) / 1000));
+      setSecsLeft(diff);
+      if (diff === 0) clearInterval(timerRef.current!);
+    };
+    update();
+    timerRef.current = setInterval(update, 1000);
+    return () => clearInterval(timerRef.current!);
+  }, [token]);
+
+  async function generateCode() {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/line/bind-token');
+      setToken(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function unbind() {
+    setUnbinding(true);
+    try {
+      await api.delete('/line/unbind');
+      setBound(false);
+      onBindSuccess();
+    } finally {
+      setUnbinding(false);
+    }
+  }
+
+  function copyCode() {
+    if (token) {
+      navigator.clipboard.writeText(token.code).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  const expired = secsLeft === 0 && !!token;
+  const mm = String(Math.floor(secsLeft / 60)).padStart(2, '0');
+  const ss = String(secsLeft % 60).padStart(2, '0');
+
+  return (
+    <div style={{
+      borderRadius: 20, padding: '20px',
+      background: bound
+        ? 'linear-gradient(135deg, rgba(0,185,0,0.08) 0%, rgba(6,10,30,0.85) 100%)'
+        : 'rgba(255,255,255,0.04)',
+      border: `1px solid ${bound ? 'rgba(0,185,0,0.25)' : 'rgba(255,255,255,0.08)'}`,
+      backdropFilter: 'blur(12px)',
+    }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#00B900', boxShadow: '0 0 16px rgba(0,185,0,0.35)',
+          fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: -1,
+        }}>L</div>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#F1F5F9' }}>LINE 套利通知</p>
+          <p style={{ fontSize: 12, color: bound ? '#4ADE80' : '#64748B' }}>
+            {bound ? '✅ 已綁定 · 通知啟用中' : '尚未綁定 LINE 帳號'}
+          </p>
+        </div>
+      </div>
+
+      {bound ? (
+        /* ── Bound state ── */
+        <div>
+          <p style={{ fontSize: 12, color: '#475569', marginBottom: 14, lineHeight: 1.6 }}>
+            有套利機會時卡報報會主動推播通知，不需要手動查詢。
+          </p>
+          <button
+            onClick={unbind}
+            disabled={unbinding}
+            style={{
+              padding: '10px 18px', borderRadius: 12, border: '1px solid rgba(239,68,68,0.3)',
+              background: 'rgba(239,68,68,0.07)', color: '#F87171',
+              fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              opacity: unbinding ? 0.5 : 1,
+            }}
+          >
+            {unbinding ? '解除中…' : '解除 LINE 綁定'}
+          </button>
+        </div>
+      ) : token && !expired ? (
+        /* ── Binding code shown ── */
+        <div>
+          {/* Step 1 */}
+          {botLink && (
+            <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 12, lineHeight: 1.7 }}>
+              步驟 1 ·{' '}
+              <a href={botLink} target="_blank" rel="noreferrer"
+                style={{ color: '#4ADE80', textDecoration: 'underline' }}>
+                加入卡報報官方 LINE 帳號 ↗
+              </a>
+            </p>
+          )}
+          {/* Step 2 */}
+          <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 10, lineHeight: 1.7 }}>
+            步驟 {botLink ? '2' : '1'} · 在 LINE 對話框輸入以下綁定碼：
+          </p>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14,
+          }}>
+            {/* Big code display */}
+            <div style={{
+              flex: 1, borderRadius: 14, padding: '14px 18px',
+              background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.12)',
+              textAlign: 'center',
+            }}>
+              <p style={{
+                fontFamily: 'monospace', fontSize: 34, fontWeight: 900,
+                letterSpacing: 10, color: '#F8FAFC', lineHeight: 1,
+              }}>{token.code}</p>
+              <p style={{ fontSize: 11, color: secsLeft < 60 ? '#F87171' : '#64748B', marginTop: 8 }}>
+                {secsLeft < 60 ? '⚠️' : '⏱'} 剩餘 {mm}:{ss}
+              </p>
+            </div>
+            <button
+              onClick={copyCode}
+              style={{
+                padding: '10px 14px', borderRadius: 12,
+                border: '1px solid rgba(139,92,246,0.35)',
+                background: copied ? 'rgba(74,222,128,0.1)' : 'rgba(139,92,246,0.1)',
+                color: copied ? '#4ADE80' : '#A78BFA',
+                fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >{copied ? '✓ 已複製' : '複製'}</button>
+          </div>
+          <button
+            onClick={generateCode}
+            disabled={loading}
+            style={{
+              fontSize: 12, color: '#475569', background: 'none', border: 'none',
+              cursor: 'pointer', padding: 0, textDecoration: 'underline',
+            }}
+          >重新產生綁定碼</button>
+        </div>
+      ) : (
+        /* ── Initial / expired state ── */
+        <div>
+          <p style={{ fontSize: 12, color: '#475569', marginBottom: 16, lineHeight: 1.6 }}>
+            {expired
+              ? '⏰ 綁定碼已過期，請重新產生。'
+              : '綁定你的 LINE 帳號，卡拍拍出現套利機會時立即通知。'}
+          </p>
+          <button
+            onClick={generateCode}
+            disabled={loading}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 14,
+              border: '1px solid rgba(0,185,0,0.35)',
+              background: 'rgba(0,185,0,0.08)', color: '#4ADE80',
+              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              opacity: loading ? 0.5 : 1,
+            }}
+          >
+            {loading ? '產生中…' : expired ? '重新產生綁定碼' : '取得 LINE 綁定碼'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Profile page ──────────────────────────────────────────────
 
 export function Profile() {
   const navigate = useNavigate();
@@ -108,6 +301,12 @@ export function Profile() {
             </div>
           </div>
         </div>
+
+        {/* LINE subscription */}
+        <LineSubscribeCard
+          lineBound={!!user.lineBound}
+          onBindSuccess={refreshUser}
+        />
 
         {/* Menu */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

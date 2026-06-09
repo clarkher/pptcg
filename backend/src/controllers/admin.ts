@@ -336,3 +336,81 @@ export async function adminOrphanListings(_req: AuthRequest, res: Response) {
   const known = new Set(cards.map((c) => c.id));
   res.json(listings.filter((l) => !known.has(l.cardId)));
 }
+
+// ── Settings (LINE credentials, etc.) ─────────────────────────
+
+// Sensitive keys whose values are masked in GET response
+const MASKED_KEYS = new Set(['LINE_CHANNEL_SECRET', 'LINE_CHANNEL_ACCESS_TOKEN']);
+
+export async function adminGetSettings(_req: AuthRequest, res: Response) {
+  const settings = await prisma.setting.findMany({ orderBy: { key: 'asc' } });
+  res.json(settings.map(s => ({
+    key: s.key,
+    value: MASKED_KEYS.has(s.key) ? (s.value ? '••••••' + s.value.slice(-4) : '') : s.value,
+    updatedAt: s.updatedAt,
+    hasValue: !!s.value,
+  })));
+}
+
+export async function adminUpsertSetting(req: AuthRequest, res: Response) {
+  const key = req.params.key as string;
+  const { value } = req.body;
+  if (!key || value === undefined) { res.status(400).json({ error: 'key and value required' }); return; }
+  const setting = await prisma.setting.upsert({
+    where: { key: key },
+    update: { value: String(value) },
+    create: { key: key, value: String(value) },
+  });
+  res.json({ key: setting.key, updatedAt: setting.updatedAt });
+}
+
+// Generate a 6-char binding code for LINE account linking (kept for backwards compat)
+export async function adminGenLineBindToken(req: AuthRequest, res: Response) {
+  const userId = req.userId;
+  if (!userId) { res.status(401).json({ error: 'unauthorized' }); return; }
+
+  await prisma.lineBindToken.deleteMany({ where: { userId } });
+
+  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  await prisma.lineBindToken.create({ data: { code, userId, expiresAt } });
+
+  res.json({ code, expiresAt });
+}
+
+// Auto-configure LINE webhook URL via LINE API
+export async function adminLineSetupWebhook(req: AuthRequest, res: Response) {
+  const { webhookUrl } = req.body as { webhookUrl?: string };
+  if (!webhookUrl) { res.status(400).json({ error: 'webhookUrl required' }); return; }
+
+  const tokenRow = await prisma.setting.findUnique({ where: { key: 'LINE_CHANNEL_ACCESS_TOKEN' } });
+  if (!tokenRow?.value) {
+    res.status(400).json({ error: 'LINE_CHANNEL_ACCESS_TOKEN 尚未設定，請先填入 Access Token' });
+    return;
+  }
+
+  const accessToken = tokenRow.value;
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
+
+  // 1. Set webhook URL
+  const setRes = await fetch('https://api.line.me/v2/bot/channel/webhook/endpoint', {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ webhook_endpoint: webhookUrl }),
+  });
+  if (!setRes.ok) {
+    const err = await setRes.text();
+    res.status(400).json({ error: `LINE API 設定失敗: ${err}` });
+    return;
+  }
+
+  // 2. Test webhook
+  const testRes = await fetch('https://api.line.me/v2/bot/channel/webhook/test', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ webhook_endpoint: webhookUrl }),
+  });
+  const testData = await testRes.json().catch(() => ({}));
+
+  res.json({ ok: true, webhookUrl, test: testData });
+}

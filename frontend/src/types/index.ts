@@ -5,6 +5,7 @@ export interface User {
   wallet: number;
   avatar?: string;
   isAdmin?: boolean;
+  lineBound?: boolean;
 }
 
 export interface Card {

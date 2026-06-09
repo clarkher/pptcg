@@ -1,4 +1,5 @@
 import { api } from './client';
+export { apiBase } from './client'; // AdminLineSettings 直接 fetch 用
 import type { CatalogCard, CatalogCardDetail, RarityDef, ConditionDef, SeriesDef } from '../types/catalog';
 
 export interface SetInfo { id: string; name: string; logo: string | null; releaseDate: string | null; language: string; seriesKey: string; count: number; }

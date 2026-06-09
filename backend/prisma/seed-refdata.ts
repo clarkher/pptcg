@@ -29,6 +29,11 @@ const RARITY_MAP: { raw: string[]; code: string; label: string; color: string; s
   { raw: ['Rare Rainbow'], code: 'HR', label: '彩虹稀有', color: '#fb7185', sortOrder: 92 },
   { raw: ['Rare Secret'], code: 'UR', label: '金卡', color: '#f59e0b', sortOrder: 90 },
   { raw: ['Mega Hyper Rare'], code: 'UR', label: '金卡', color: '#f59e0b', sortOrder: 90 },
+  // 官方繁中訓練家網站（超級進化系列）稀有度縮寫，本身已是縮寫故 raw=code（只建參照列、不轉換）
+  { raw: ['RRR'], code: 'RRR', label: '三重稀有', color: '#1d4ed8', sortOrder: 51 },
+  { raw: ['TR'], code: 'TR', label: '訓練家稀有', color: '#7c3aed', sortOrder: 61 },
+  { raw: ['MA'], code: 'MA', label: '超級異攻', color: '#ea580c', sortOrder: 79 },
+  { raw: ['MUR'], code: 'MUR', label: '超級金卡', color: '#f59e0b', sortOrder: 94 },
 ];
 
 // 中文品相分級
