@@ -31,10 +31,10 @@ app.use(cors({
   },
   credentials: true,
 }));
-// LINE webhook needs raw Buffer body for signature verification — must be BEFORE express.json()
-app.use('/api/line', express.raw({ type: 'application/json' }), lineRoutes);
-
 app.use(express.json());
+
+// LINE routes (webhook raw body handling is per-route inside lineRoutes)
+app.use('/api/line', lineRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/cards', cardRoutes);

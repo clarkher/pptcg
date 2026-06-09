@@ -7,7 +7,7 @@ import {
   adminCreateInventory, adminUpdateInventory, adminDeleteInventory,
   adminCatalog, adminCardWishlist, adminWishlistOverview,
   adminUpdateCard, adminCreateCard, adminOrphanListings,
-  adminGetSettings, adminUpsertSetting, adminGenLineBindToken,
+  adminGetSettings, adminUpsertSetting, adminGenLineBindToken, adminLineSetupWebhook,
 } from '../controllers/admin';
 import {
   listRarities, createRarity, updateRarity, deleteRarity,
@@ -54,6 +54,7 @@ router.get('/orphan-listings', ...guard, adminOrphanListings);
 // Settings & LINE
 router.get('/settings', ...guard, adminGetSettings);
 router.put('/settings/:key', ...guard, adminUpsertSetting);
-router.post('/line/bind-token', authMiddleware, adminGenLineBindToken); // user-facing (not admin-only)
+router.post('/line/bind-token', authMiddleware, adminGenLineBindToken); // kept for backwards compat
+router.post('/line/setup-webhook', ...guard, adminLineSetupWebhook);   // auto-configure LINE webhook
 
 export default router;

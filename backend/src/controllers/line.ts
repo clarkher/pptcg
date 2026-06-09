@@ -12,9 +12,8 @@
 
 import { Request, Response } from 'express';
 import { createHmac } from 'crypto';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
+import { AuthRequest } from '../middleware/auth';
 
 // ─── LINE API helpers ─────────────────────────────────────────
 
@@ -136,6 +135,39 @@ async function handleBindingCode(event: any, code: string, accessToken: string) 
     type: 'text',
     text: `✅ 綁定成功！\n\n帳號：${user?.email ?? pending.userId}\n\n卡報報開始為你監控套利機會，有發現時會主動通知你 🎉`,
   }], accessToken);
+}
+
+// ─── User-facing endpoints ────────────────────────────────────
+
+/** GET /api/line/info — public: return bot add link so the profile page can show it */
+export async function lineInfo(_req: Request, res: Response) {
+  const s = await prisma.setting.findUnique({ where: { key: 'LINE_BOT_LINK' } });
+  res.json({ botLink: s?.value ?? null });
+}
+
+/** GET /api/line/status — authed: check binding */
+export async function lineBindStatus(req: AuthRequest, res: Response) {
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId! },
+    select: { lineUid: true },
+  });
+  res.json({ bound: !!user?.lineUid });
+}
+
+/** POST /api/line/bind-token — authed: generate 6-char code */
+export async function lineGenBindToken(req: AuthRequest, res: Response) {
+  const userId = req.userId!;
+  await prisma.lineBindToken.deleteMany({ where: { userId } });
+  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+  await prisma.lineBindToken.create({ data: { code, userId, expiresAt } });
+  res.json({ code, expiresAt });
+}
+
+/** DELETE /api/line/unbind — authed: remove LINE linkage */
+export async function lineUnbind(req: AuthRequest, res: Response) {
+  await prisma.user.update({ where: { id: req.userId! }, data: { lineUid: null } });
+  res.json({ ok: true });
 }
 
 // ─── Main webhook handler ─────────────────────────────────────

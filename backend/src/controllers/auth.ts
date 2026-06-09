@@ -108,11 +108,12 @@ export async function googleLogin(req: Request, res: Response) {
 export async function me(req: AuthRequest, res: Response) {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, username: true, wallet: true, avatar: true, isAdmin: true },
+    select: { id: true, email: true, username: true, wallet: true, avatar: true, isAdmin: true, lineUid: true },
   });
   if (!user) {
     res.status(404).json({ error: '使用者不存在' });
     return;
   }
-  res.json(user);
+  const { lineUid, ...rest } = user;
+  res.json({ ...rest, lineBound: !!lineUid });
 }
