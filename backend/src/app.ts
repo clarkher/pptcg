@@ -11,6 +11,9 @@ import catalogRoutes from './routes/catalog';
 import wishlistRoutes from './routes/wishlist';
 import notificationRoutes from './routes/notifications';
 import lineRoutes from './routes/line';
+import cartRoutes from './routes/cart';
+import checkoutRoutes from './routes/checkout';
+import ecpayRoutes from './routes/ecpay';
 
 const app = express();
 
@@ -32,6 +35,8 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+// ECPay callbacks post application/x-www-form-urlencoded
+app.use(express.urlencoded({ extended: false }));
 
 // LINE routes (webhook raw body handling is per-route inside lineRoutes)
 app.use('/api/line', lineRoutes);
@@ -40,6 +45,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cards', cardRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/ecpay', ecpayRoutes);
 
 app.use('/api/admin', adminRoutes);
 app.use('/api/pokemon', pokemonRoutes);
