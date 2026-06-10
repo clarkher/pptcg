@@ -3,13 +3,15 @@ import { prisma } from '../lib/prisma';
 import { aggregateInventory, type InventoryRow } from '../lib/inventory';
 import { AuthRequest } from '../middleware/auth';
 
-// 取一批 cardId 的 active 庫存，回 Map<cardId, InventoryRow[]>
-async function inventoryByCard(cardIds: string[]): Promise<Map<string, InventoryRow[]>> {
-  const map = new Map<string, InventoryRow[]>();
+type InventoryRowWithId = InventoryRow & { id: string };
+
+// 取一批 cardId 的 active 庫存，回 Map<cardId, InventoryRow[]>（含 listing id）
+async function inventoryByCard(cardIds: string[]): Promise<Map<string, InventoryRowWithId[]>> {
+  const map = new Map<string, InventoryRowWithId[]>();
   if (cardIds.length === 0) return map;
   const listings = await prisma.listing.findMany({
     where: { cardId: { in: cardIds }, status: 'active' },
-    select: { cardId: true, variant: true, condition: true, price: true, quantity: true },
+    select: { id: true, cardId: true, variant: true, condition: true, price: true, quantity: true },
   });
   for (const l of listings) {
     const arr = map.get(l.cardId) ?? [];
@@ -17,6 +19,13 @@ async function inventoryByCard(cardIds: string[]): Promise<Map<string, Inventory
     map.set(l.cardId, arr);
   }
   return map;
+}
+
+// 最低價且有庫存的 listing id（給市場卡片格快速加入購物車用）
+function cheapestInStockListingId(rows: InventoryRowWithId[]): string | null {
+  const inStock = rows.filter((r) => r.quantity > 0);
+  if (inStock.length === 0) return null;
+  return inStock.reduce((min, r) => (r.price < min.price ? r : min)).id;
 }
 
 async function wishlistCountByCard(cardIds: string[]): Promise<Map<string, number>> {
@@ -58,12 +67,14 @@ export async function listCatalogCards(req: Request, res: Response) {
   const [inv, wish] = await Promise.all([inventoryByCard(ids), wishlistCountByCard(ids)]);
 
   let merged = cards.map((c) => {
-    const agg = aggregateInventory(inv.get(c.id) ?? []);
+    const rows = inv.get(c.id) ?? [];
+    const agg = aggregateInventory(rows);
     return {
       id: c.id, name: c.name, number: c.number, image: c.image, imageHigh: c.imageHigh,
       rarity: c.rarity, language: c.language, seriesKey: c.seriesKey, seriesName: c.seriesName,
       setId: c.setId, setName: c.setName,
       minPrice: agg.minPrice, totalQty: agg.totalQty, variantCount: agg.variantCount,
+      cheapestListingId: cheapestInStockListingId(rows),
       wishlistCount: wish.get(c.id) ?? 0,
     };
   });

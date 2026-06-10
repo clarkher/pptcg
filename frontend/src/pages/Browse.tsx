@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { catalogApi } from '../api/catalog';
 import { wishlistApi } from '../api/wishlist';
 import { useAuthStore } from '../stores/authStore';
+import { useCartStore } from '../stores/cartStore';
 import type { CatalogCard as CatalogCardType, RarityDef } from '../types/catalog';
 import { SeriesSetNav } from '../components/SeriesSetNav';
 import { CatalogCard } from '../components/CatalogCard';
@@ -11,6 +12,7 @@ import { SEOHead } from '../components/SEOHead';
 export function Browse() {
   const navigate = useNavigate();
   const token = useAuthStore((s) => s.token);
+  const addToCart = useCartStore((s) => s.add);
 
   const [language, setLanguage] = useState('zh');
   const [seriesKey, setSeriesKey] = useState('');
@@ -57,6 +59,17 @@ export function Browse() {
       await wishlistApi.add(card.id);
       setCards((prev) => prev.map((c) => c.id === card.id ? { ...c, wishlistCount: c.wishlistCount + 1 } : c));
     } catch { /* ignore */ }
+  };
+
+  const handleAddToCart = async (card: CatalogCardType): Promise<boolean> => {
+    if (!token) { navigate('/login'); return false; }
+    if (!card.cheapestListingId) return false;
+    try {
+      await addToCart(card.cheapestListingId);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   return (
@@ -117,6 +130,7 @@ export function Browse() {
                 key={card.id} card={card} rarityColor={rarityColor}
                 onClick={() => navigate(`/card/${encodeURIComponent(card.id)}`)}
                 onWish={() => handleWish(card)}
+                onAddToCart={() => handleAddToCart(card)}
               />
             ))}
           </div>

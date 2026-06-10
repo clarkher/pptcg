@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus, Check } from 'lucide-react';
 import type { Listing } from '../types';
+import { useAuthStore } from '../stores/authStore';
+import { useCartStore } from '../stores/cartStore';
 import cardPlaceholder from '../assets/card-placeholder.png';
 import yugiohIcon from '../assets/game-icons/yugioh-icon.png';
 import pokemonIcon from '../assets/game-icons/pokemon-icon.png';
@@ -17,8 +21,29 @@ const GAME_STYLE: Record<string, { color: string; bg: string; icon: string; labe
 
 export function CardItem({ listing }: { listing: Listing }) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const addToCart = useCartStore((s) => s.add);
+  const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState(false);
   const condColor = COND_COLOR[listing.condition] ?? '#34D399';
   const game = GAME_STYLE[listing.cardGame] ?? GAME_STYLE['yugioh'];
+
+  const isOwn = !!user && listing.seller.username === user.username;
+  const canQuickAdd = listing.status === 'active' && listing.quantity > 0 && !isOwn;
+
+  const handleQuickAdd = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) { navigate('/login'); return; }
+    if (adding) return;
+    setAdding(true);
+    try {
+      await addToCart(listing.id);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1500);
+    } catch { /* ignore */ } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <div
@@ -73,6 +98,28 @@ export function CardItem({ listing }: { listing: Listing }) {
           background: 'linear-gradient(to top, rgba(9,9,26,0.9), transparent)',
           pointerEvents: 'none',
         }} />
+
+        {/* Quick add-to-cart */}
+        {canQuickAdd && (
+          <button
+            onClick={handleQuickAdd}
+            disabled={adding}
+            aria-label="加入購物車"
+            style={{
+              position: 'absolute', bottom: 8, right: 8, zIndex: 5,
+              width: 32, height: 32, borderRadius: 10, border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', opacity: adding ? 0.6 : 1,
+              background: added
+                ? 'linear-gradient(135deg,#34D399,#059669)'
+                : 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+              boxShadow: added ? '0 0 14px rgba(52,211,153,0.5)' : '0 2px 10px rgba(109,40,236,0.5)',
+              transition: 'background 0.2s',
+            }}
+          >
+            {added ? <Check size={17} /> : <Plus size={18} />}
+          </button>
+        )}
       </div>
 
       {/* Info area */}

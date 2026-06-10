@@ -13,6 +13,7 @@ export interface CatalogCard {
   minPrice: number | null;
   totalQty: number;
   variantCount: number;
+  cheapestListingId: string | null;
   wishlistCount: number;
 }
 

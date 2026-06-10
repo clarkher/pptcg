@@ -9,6 +9,7 @@ import brandLogo from '../assets/brand-logo.png';
 const NAV = [
   { path: '/', label: '首頁', exact: true, icon: HomeIcon },
   { path: '/market', label: '市場', exact: false, icon: MarketIcon },
+  { path: '/cart', label: '購物車', exact: false, icon: CartIcon },
   { path: '/orders', label: '訂單', exact: false, icon: OrderIcon },
   { path: '/profile', label: '我的', exact: false, icon: ProfileIcon },
 ];
@@ -43,6 +44,9 @@ function ProfileIcon() {
     <circle cx="12" cy="7" r="4"/>
   </svg>;
 }
+function CartIcon() {
+  return <ShoppingCart width={18} height={18} strokeWidth={2} />;
+}
 
 interface Props { children: React.ReactNode }
 
@@ -59,7 +63,7 @@ export function AppShell({ children }: Props) {
   }, [user]);
 
   const goTo = (path: string) => {
-    if ((path === '/orders' || path === '/profile') && !user) {
+    if ((path === '/orders' || path === '/profile' || path === '/cart') && !user) {
       navigate('/login');
     } else {
       navigate(path);
@@ -68,6 +72,9 @@ export function AppShell({ children }: Props) {
 
   const isActive = (item: typeof NAV[0]) =>
     item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
+
+  // 商品詳情頁有自己的固定底部「加入購物車」列，手機底部導覽列隱藏避免重疊遮住按鈕
+  const hideMobileNav = location.pathname.startsWith('/listing/');
 
   return (
     <div style={{ display: 'flex', minHeight: '100dvh' }}>
@@ -168,6 +175,7 @@ export function AppShell({ children }: Props) {
                   }} />
                 )}
                 <span style={{
+                  position: 'relative',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 32, height: 32, borderRadius: 10, flexShrink: 0,
                   background: active
@@ -177,6 +185,15 @@ export function AppShell({ children }: Props) {
                   filter: active ? 'drop-shadow(0 0 6px rgba(167,139,250,0.6))' : 'none',
                 }}>
                   <Icon />
+                  {item.path === '/cart' && user && cartCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, padding: '0 4px',
+                      borderRadius: 8, background: '#8B5CF6', color: '#fff', fontSize: 9, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {cartCount > 9 ? '9+' : cartCount}
+                    </span>
+                  )}
                 </span>
                 <span>{item.label}</span>
                 {active && (
@@ -243,38 +260,13 @@ export function AppShell({ children }: Props) {
       {/* ── Main content ─────────────── */}
       <main style={{ flex: 1, minWidth: 0, position: 'relative' }}>
         <NotificationBell />
-        {/* Cart icon — fixed top-right, next to notification bell */}
-        {user && (
-          <div style={{ position: 'fixed', top: 14, right: 64, zIndex: 60 }}>
-            <button
-              onClick={() => navigate('/cart')}
-              aria-label="購物車"
-              style={{
-                position: 'relative', width: 40, height: 40, borderRadius: 12, cursor: 'pointer',
-                background: 'rgba(6,6,15,0.9)', border: '1px solid rgba(167,139,250,0.2)',
-                backdropFilter: 'blur(12px)', color: '#A78BFA',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <ShoppingCart size={20} />
-              {cartCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, padding: '0 4px',
-                  borderRadius: 9, background: '#8B5CF6', color: '#fff', fontSize: 10, fontWeight: 800,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {cartCount > 9 ? '9+' : cartCount}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           {children}
         </div>
       </main>
 
       {/* ── Mobile Bottom Nav ──────── */}
+      {!hideMobileNav && (
       <nav className="mobile-bottom-nav" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
         background: 'rgba(6,6,15,0.92)',
@@ -294,12 +286,22 @@ export function AppShell({ children }: Props) {
                 transition: 'color 0.15s',
               }}>
                 <div style={{
+                  position: 'relative',
                   width: 32, height: 32, borderRadius: 10,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
                   transition: 'background 0.15s',
                 }}>
                   <Icon />
+                  {item.path === '/cart' && user && cartCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, padding: '0 4px',
+                      borderRadius: 8, background: '#8B5CF6', color: '#fff', fontSize: 9, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {cartCount > 9 ? '9+' : cartCount}
+                    </span>
+                  )}
                 </div>
                 <span style={{ fontSize: 10, fontWeight: 600 }}>{item.label}</span>
               </button>
@@ -308,6 +310,7 @@ export function AppShell({ children }: Props) {
         </div>
         <div style={{ height: 'env(safe-area-inset-bottom, 8px)' }} />
       </nav>
+      )}
     </div>
   );
 }

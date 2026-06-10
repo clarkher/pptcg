@@ -4,11 +4,12 @@ import { Trash2, ShoppingCart } from 'lucide-react';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { QtyStepper } from '../components/QtyStepper';
 
 export function Cart() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { items, loading, fetch, remove } = useCartStore();
+  const { items, loading, fetch, remove, setQuantity } = useCartStore();
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
@@ -56,20 +57,29 @@ export function Cart() {
                     alt={item.listing.cardName}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ color: '#F1F5F9', fontWeight: 700, fontSize: 14, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p style={{ color: '#F1F5F9', fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {item.listing.cardName}
                     </p>
-                    <p style={{ color: '#64748B', fontSize: 12 }}>
-                      {item.listing.condition} ×{item.quantity}{'　'}
-                      <span style={{ color: '#A78BFA', fontWeight: 700 }}>
-                        NT${(item.listing.price * item.quantity).toLocaleString()}
-                      </span>
+                    <p style={{ color: '#64748B', fontSize: 12, marginBottom: 8 }}>
+                      {item.listing.condition} · 單價 NT${item.listing.price.toLocaleString()}
                       {inactive && <span style={{ color: '#EF4444', marginLeft: 6 }}>已售出</span>}
                     </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <QtyStepper
+                        size="sm"
+                        value={item.quantity}
+                        max={Math.max(item.quantity, item.listing.quantity)}
+                        disabled={inactive}
+                        onChange={(n) => setQuantity(item.listingId, n)}
+                      />
+                      <span style={{ color: '#A78BFA', fontWeight: 800, fontSize: 14 }}>
+                        NT${(item.listing.price * item.quantity).toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={() => remove(item.listingId)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', padding: 6 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', padding: 6, alignSelf: 'flex-start' }}
                     aria-label="移除"
                   >
                     <Trash2 size={16} />
