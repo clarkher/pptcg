@@ -245,3 +245,69 @@ model HucaCard {
   @@index([priceValidUntil])
   @@index([offerCount])
 }
+
+// ── 卡報報監控引擎 ────────────────────────────────────
+
+model KapaiListing {
+  id             Int      @id
+  game           String
+  cardKey        String
+  setCode        String
+  cardNumber     String
+  name           String
+  packName       String
+  rarity         String
+  price          Int
+  stock          Int
+  condition      String
+  sellerId       Int
+  sellerNickname String
+  sellerArea     String
+  listedAt       DateTime
+  scrapedAt      DateTime @default(now())
+  processed      Boolean  @default(false)
+
+  @@index([cardKey, condition])
+  @@index([scrapedAt])
+  @@index([processed])
+}
+
+model KapaiBaseline {
+  id         String   @id @default(cuid())
+  cardKey    String
+  condition  String
+  game       String
+  median     Int
+  sampleSize Int
+  updatedAt  DateTime @updatedAt
+
+  @@unique([cardKey, condition])
+  @@index([cardKey])
+}
+
+model ArbitrageAlert {
+  id        String   @id @default(cuid())
+  listingId Int      @unique
+  cardKey   String
+  game      String
+  price     Int
+  baseline  Int
+  discount  Float
+  profit    Int
+  notified  Boolean  @default(false)
+  pushedAt  DateTime @default(now())
+
+  @@index([pushedAt])
+}
+
+model NotifyPreference {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  games        String[] @default([])
+  minSavingPct Float?
+  minPrice     Int?
+  maxPrice     Int?
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

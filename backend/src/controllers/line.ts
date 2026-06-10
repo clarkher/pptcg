@@ -33,7 +33,7 @@ async function lineReply(replyToken: string, messages: object[], accessToken: st
   });
 }
 
-async function linePush(userId: string, messages: object[], accessToken: string) {
+export async function linePush(userId: string, messages: object[], accessToken: string) {
   await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
     headers: {
