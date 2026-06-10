@@ -8,6 +8,10 @@ import { Profile } from './pages/Profile';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ListingDetail } from './pages/ListingDetail';
+import { Cart } from './pages/Cart';
+import { Checkout } from './pages/Checkout';
+import { CheckoutStoreConfirm } from './pages/CheckoutStoreConfirm';
+import { OrderResult } from './pages/OrderResult';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -50,6 +54,10 @@ function App() {
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/listing/:id" element={<ListingDetail />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/checkout/store-confirm" element={<CheckoutStoreConfirm />} />
+                <Route path="/order-result" element={<OrderResult />} />
               </Routes>
             </AppShell>
           } />
