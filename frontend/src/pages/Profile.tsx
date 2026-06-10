@@ -43,6 +43,7 @@ function LineSubscribeCard({ lineBound, onBindSuccess }: { lineBound: boolean; o
   const [copied, setCopied]       = useState(false);
   const [botLink, setBotLink]     = useState<string | null>(null);
   const [secsLeft, setSecsLeft]   = useState(0);
+  const [error, setError]         = useState('');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch bot link once
@@ -65,9 +66,12 @@ function LineSubscribeCard({ lineBound, onBindSuccess }: { lineBound: boolean; o
 
   async function generateCode() {
     setLoading(true);
+    setError('');
     try {
       const { data } = await api.post('/line/bind-token');
       setToken(data);
+    } catch (e: any) {
+      setError(e?.response?.data?.error ?? '產生綁定碼失敗，請稍後再試');
     } finally {
       setLoading(false);
     }
@@ -197,11 +201,30 @@ function LineSubscribeCard({ lineBound, onBindSuccess }: { lineBound: boolean; o
       ) : (
         /* ── Initial / expired state ── */
         <div>
-          <p style={{ fontSize: 12, color: '#475569', marginBottom: 16, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 12, color: '#475569', marginBottom: 14, lineHeight: 1.6 }}>
             {expired
               ? '⏰ 綁定碼已過期，請重新產生。'
               : '綁定你的 LINE 帳號，卡拍拍出現套利機會時立即通知。'}
           </p>
+
+          {/* 官方 LINE 加入連結（常駐） */}
+          {botLink && (
+            <a
+              href={botLink}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', padding: '12px', borderRadius: 14, marginBottom: 10,
+                background: '#00B900', color: '#fff', textDecoration: 'none',
+                fontSize: 14, fontWeight: 700,
+                boxShadow: '0 0 16px rgba(0,185,0,0.3)',
+              }}
+            >
+              加入卡報報官方 LINE ↗
+            </a>
+          )}
+
           <button
             onClick={generateCode}
             disabled={loading}
@@ -215,6 +238,12 @@ function LineSubscribeCard({ lineBound, onBindSuccess }: { lineBound: boolean; o
           >
             {loading ? '產生中…' : expired ? '重新產生綁定碼' : '取得 LINE 綁定碼'}
           </button>
+
+          {error && (
+            <p style={{ fontSize: 12, color: '#F87171', marginTop: 10, lineHeight: 1.5 }}>
+              ⚠️ {error}
+            </p>
+          )}
         </div>
       )}
     </div>
