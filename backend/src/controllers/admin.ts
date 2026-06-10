@@ -392,11 +392,11 @@ export async function adminLineSetupWebhook(req: AuthRequest, res: Response) {
   const accessToken = tokenRow.value;
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
 
-  // 1. Set webhook URL
+  // 1. Set webhook URL — LINE expects field name "endpoint"
   const setRes = await fetch('https://api.line.me/v2/bot/channel/webhook/endpoint', {
     method: 'PUT',
     headers,
-    body: JSON.stringify({ webhook_endpoint: webhookUrl }),
+    body: JSON.stringify({ endpoint: webhookUrl }),
   });
   if (!setRes.ok) {
     const err = await setRes.text();
@@ -404,11 +404,11 @@ export async function adminLineSetupWebhook(req: AuthRequest, res: Response) {
     return;
   }
 
-  // 2. Test webhook
+  // 2. Test webhook — LINE expects field name "endpoint"
   const testRes = await fetch('https://api.line.me/v2/bot/channel/webhook/test', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ webhook_endpoint: webhookUrl }),
+    body: JSON.stringify({ endpoint: webhookUrl }),
   });
   const testData = await testRes.json().catch(() => ({}));
 
