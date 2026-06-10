@@ -108,6 +108,7 @@ model Order {
 
   status          String      @default("pending_payment")
   // pending_payment | paid | shipped | completed | cancelled | refunded
+  reservationExpiresAt DateTime?  // 預留庫存到期時間（信用卡 30min；CVS 取號後延長為實際 ExpireDate）
   refundedAt      DateTime?
   refundNote      String?
 

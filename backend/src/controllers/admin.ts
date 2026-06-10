@@ -11,6 +11,34 @@ async function cardTotalQty(cardId: string): Promise<number> {
   return agg._sum.quantity ?? 0;
 }
 
+// 退款：在一個 transaction 內更新訂單狀態並回補各 listing 的 quantity（+status active），
+// 之後對「0→正數」的卡觸發敲碗補貨通知。
+type RefundItem = { listingId: string; quantity: number; listing: { cardId: string } };
+async function doRefundRestore(
+  orderId: string,
+  items: RefundItem[],
+  orderData: Record<string, unknown>,
+): Promise<void> {
+  const cardIds = [...new Set(items.map((i) => i.listing.cardId))];
+  const prev = new Map<string, number>();
+  for (const c of cardIds) prev.set(c, await cardTotalQty(c));
+
+  await prisma.$transaction(async (tx) => {
+    await tx.order.update({ where: { id: orderId }, data: orderData });
+    for (const it of items) {
+      await tx.listing.updateMany({
+        where: { id: it.listingId },
+        data: { quantity: { increment: it.quantity }, status: 'active' },
+      });
+    }
+  });
+
+  for (const c of cardIds) {
+    const next = await cardTotalQty(c);
+    if (becameRestocked(prev.get(c) ?? 0, next)) await runRestockNotify(c);
+  }
+}
+
 // ── Listings ──────────────────────────────────────────────
 
 export async function adminGetListings(_req: AuthRequest, res: Response) {
@@ -106,7 +134,7 @@ export async function adminGetStats(_req: AuthRequest, res: Response) {
     prisma.listing.count(),
     prisma.listing.count({ where: { status: 'active' } }),
     prisma.order.count(),
-    prisma.order.count({ where: { status: 'pending' } }),
+    prisma.order.count({ where: { status: 'pending_payment' } }),
     prisma.user.count(),
   ]);
   const revenue = await prisma.order.aggregate({
@@ -423,7 +451,7 @@ export async function refundOrder(req: AuthRequest, res: Response) {
 
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: true },
+    include: { items: { include: { listing: { select: { cardId: true } } } } },
   });
   if (!order) {
     res.status(404).json({ error: '訂單不存在' });
@@ -436,18 +464,10 @@ export async function refundOrder(req: AuthRequest, res: Response) {
 
   // 超商取貨付款 (cvs_cod) 是現金，無法自動退款 → 標記後請手動匯款
   if (order.paymentMethod === 'cvs_cod') {
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id },
-        data: {
-          status: 'refunded',
-          refundedAt: new Date(),
-          refundNote: note || '超商取貨付款，請手動退款給買家',
-        },
-      });
-      for (const item of order.items) {
-        await tx.listing.update({ where: { id: item.listingId }, data: { status: 'active' } });
-      }
+    await doRefundRestore(id, order.items, {
+      status: 'refunded',
+      refundedAt: new Date(),
+      refundNote: note || '超商取貨付款，請手動退款給買家',
     });
     res.json({ ok: true, note: '已標記退款，請手動匯款' });
     return;
@@ -487,14 +507,8 @@ export async function refundOrder(req: AuthRequest, res: Response) {
     return;
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.order.update({
-      where: { id },
-      data: { status: 'refunded', refundedAt: new Date(), refundNote: note || null },
-    });
-    for (const item of order.items) {
-      await tx.listing.update({ where: { id: item.listingId }, data: { status: 'active' } });
-    }
+  await doRefundRestore(id, order.items, {
+    status: 'refunded', refundedAt: new Date(), refundNote: note || null,
   });
 
   res.json({ ok: true });

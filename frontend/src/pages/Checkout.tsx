@@ -39,14 +39,19 @@ export function Checkout() {
       setError('請填寫收件人姓名和電話');
       return;
     }
+    const phone = receiverPhone.trim().replace(/[\s-]/g, '');
+    if (!/^09\d{8}$/.test(phone)) {
+      setError('手機號碼格式有誤，請輸入 09 開頭的 10 碼手機');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
       if (paymentMethod === 'cvs_cod') {
-        const res = await checkoutApi.selectStore(receiverName.trim(), receiverPhone.trim(), shippingType);
+        const res = await checkoutApi.selectStore(receiverName.trim(), phone, shippingType);
         submitEcpayForm(res.ecpayUrl, res.ecpayParams);  // 跳轉綠界門市地圖
       } else {
-        const res = await checkoutApi.create(paymentMethod, receiverName.trim(), receiverPhone.trim());
+        const res = await checkoutApi.create(paymentMethod, receiverName.trim(), phone);
         submitEcpayForm(res.ecpayUrl, res.ecpayParams);  // 跳轉綠界付款頁
       }
       // 頁面即將跳轉，不重置 submitting
