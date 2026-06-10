@@ -151,7 +151,7 @@ function LineSubscribeCard({ lineBound, onBindSuccess }: { lineBound: boolean; o
           {botLink && (
             <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 12, lineHeight: 1.7 }}>
               步驟 1 ·{' '}
-              <a href={botLink} target="_blank" rel="noreferrer"
+              <a href={botLink}
                 style={{ color: '#4ADE80', textDecoration: 'underline' }}>
                 加入卡報報官方 LINE 帳號 ↗
               </a>
@@ -207,12 +207,10 @@ function LineSubscribeCard({ lineBound, onBindSuccess }: { lineBound: boolean; o
               : '綁定你的 LINE 帳號，卡拍拍出現套利機會時立即通知。'}
           </p>
 
-          {/* 官方 LINE 加入連結（常駐） */}
+          {/* 官方 LINE 加入連結（常駐）— 不開新分頁，手機直接喚起 LINE app */}
           {botLink && (
             <a
               href={botLink}
-              target="_blank"
-              rel="noreferrer"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 width: '100%', padding: '12px', borderRadius: 14, marginBottom: 10,
