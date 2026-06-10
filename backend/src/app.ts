@@ -11,6 +11,7 @@ import catalogRoutes from './routes/catalog';
 import wishlistRoutes from './routes/wishlist';
 import notificationRoutes from './routes/notifications';
 import lineRoutes from './routes/line';
+import { lineWebhook } from './controllers/line';
 import cartRoutes from './routes/cart';
 import checkoutRoutes from './routes/checkout';
 import ecpayRoutes from './routes/ecpay';
@@ -34,11 +35,15 @@ app.use(cors({
   },
   credentials: true,
 }));
+// LINE webhook needs the raw Buffer for HMAC signature verification —
+// must be registered BEFORE express.json() consumes the request stream.
+app.post('/api/line/webhook', express.raw({ type: '*/*' }), lineWebhook);
+
 app.use(express.json());
 // ECPay callbacks post application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: false }));
 
-// LINE routes (webhook raw body handling is per-route inside lineRoutes)
+// Other LINE routes (status/bind-token/unbind/info — no raw body needed)
 app.use('/api/line', lineRoutes);
 
 app.use('/api/auth', authRoutes);

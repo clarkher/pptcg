@@ -1,12 +1,11 @@
 import { Router } from 'express';
-import express from 'express';
 import { authMiddleware } from '../middleware/auth';
-import { lineWebhook, lineInfo, lineBindStatus, lineGenBindToken, lineUnbind } from '../controllers/line';
+import { lineInfo, lineBindStatus, lineGenBindToken, lineUnbind } from '../controllers/line';
 
 const router = Router();
 
-// ── Webhook (raw buffer for HMAC signature verification) ──────
-router.post('/webhook', express.raw({ type: '*/*' }), lineWebhook);
+// Note: POST /webhook is registered directly in app.ts BEFORE express.json()
+// because it needs the raw Buffer body for HMAC signature verification.
 
 // ── Public ────────────────────────────────────────────────────
 router.get('/info', lineInfo);
