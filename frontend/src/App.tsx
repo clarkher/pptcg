@@ -21,11 +21,17 @@ import { AdminCatalog } from './pages/admin/AdminCatalog';
 import { AdminRefData } from './pages/admin/AdminRefData';
 import { AdminWishlist } from './pages/admin/AdminWishlist';
 import AdminLineSettings from './pages/admin/AdminLineSettings';
+import { Privacy } from './pages/Privacy';
+import { Terms } from './pages/Terms';
 
 function App() {
   return (
       <BrowserRouter>
         <Routes>
+          {/* Static pages — no shell */}
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+
           {/* Auth — no shell */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
