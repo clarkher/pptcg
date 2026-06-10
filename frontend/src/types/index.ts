@@ -2,7 +2,6 @@ export interface User {
   id: string;
   email: string;
   username: string;
-  wallet: number;
   avatar?: string;
   isAdmin?: boolean;
   lineBound?: boolean;
@@ -24,7 +23,7 @@ export interface Listing {
   cardName: string;
   cardGame: 'yugioh' | 'pokemon';
   cardImage: string;
-  condition: 'NM' | 'LP' | 'MP' | 'HP';
+  condition: string;
   price: number;
   quantity: number;
   description?: string;
@@ -34,14 +33,52 @@ export interface Listing {
   seller: { username: string; avatar?: string };
 }
 
+export interface CartItem {
+  id: string;
+  listingId: string;
+  quantity: number;
+  listing: {
+    id: string;
+    cardName: string;
+    cardImage: string;
+    price: number;
+    quantity: number;
+    status: string;
+    condition: string;
+    language: string;
+    seller: { username: string };
+  };
+}
+
+export interface OrderItem {
+  id: string;
+  listingId: string;
+  quantity: number;
+  price: number;
+  listing: {
+    cardName: string;
+    cardImage: string;
+    condition: string;
+    language: string;
+  };
+}
+
 export interface Order {
   id: string;
-  quantity: number;
+  merchantTradeNo: string;
   total: number;
-  status: string;
+  paymentMethod: 'credit' | 'cvs' | 'cvs_cod';
+  paymentStatus: 'pending' | 'paid' | 'failed';
+  status: 'pending_payment' | 'paid' | 'shipped' | 'completed' | 'cancelled' | 'refunded';
+  ecpayTradeNo?: string;
+  cvsPaymentCode?: string;
+  cvsExpireDate?: string;
+  storeName?: string;
+  receiverName?: string;
+  refundedAt?: string;
+  refundNote?: string;
+  items: OrderItem[];
   createdAt: string;
-  listing: Listing;
-  seller: { username: string };
 }
 
 export type Game = 'yugioh' | 'pokemon' | 'all';
