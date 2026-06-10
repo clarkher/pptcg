@@ -73,6 +73,19 @@ model ArbitrageAlert {
   @@unique([listingId])
   @@index([pushedAt])
 }
+
+// 通知偏好（結構預留，MVP 階段先全推，欄位空=不限）
+model NotifyPreference {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  games        String[] @default([])   // 只收這些 game（pkmtw/pkmjp/...），空=全部
+  minSavingPct Float?                  // 最低省下比例 0~1（0.4=至少省40%才推）
+  minPrice     Int?                    // 售價下限
+  maxPrice     Int?                    // 售價上限
+  enabled      Boolean  @default(true) // 總開關（false=暫停所有通知）
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
 ```
 
 ## 5. 資料流（每 5 分鐘一輪）
@@ -126,7 +139,20 @@ model ArbitrageAlert {
 
 先在 **dev/staging**（測試用戶已綁定於此）把引擎跑起來、累積資料、調參數；穩定後再開到正式機。用 `KAPAI_MONITOR_ENABLED` 環境變數控制哪個環境啟用 cron，避免兩套環境同時推播。
 
-## 11. MVP 範圍
+## 11. 通知分流（結構預留，MVP 全推）
 
-- ✅ 含：爬蟲累積、基準計算、套利偵測、LINE 推播、後台檢視（卡拍拍商品＋套利機會＋Huca 行情）。
-- ❌ 不含：金流、訂閱分級、延遲分級、多平台整合、Rich Menu、邀請裂變。（皆為後續迭代）
+每個綁定用戶可設定自己的通知範圍，避免被不相關的便宜貨洗版。維度對應 `NotifyPreference`：
+
+- `games`：只收的卡種/語言（pkmtw 繁中、pkmjp 日、pkmen 英、onejp 海賊王、ygojp 遊戲王…），空=全部
+- `minSavingPct`：套利幅度下限，省下比例 `(baseline − price) / baseline ≥ 此值`
+- `minPrice` / `maxPrice`：售價區間
+- `enabled`：總開關（false 暫停所有通知）
+
+**MVP 階段**：notifier 對所有綁定用戶全推（不查偏好）。但純函式 `matchesPreference(alert, pref)` 與 `NotifyPreference` 表先建好；之後只需把 notifier 的「全推」改成「逐一查用戶偏好用 `matchesPreference` 過濾」，不動其他元件。
+
+**後續**：用戶自助設定介面（LINE Rich Menu 或網頁會員頁）、分級（免費版延遲/限筆、付費版即時）。
+
+## 12. MVP 範圍
+
+- ✅ 含：爬蟲累積、基準計算、套利偵測、LINE 推播（全推）、後台檢視（卡拍拍商品＋套利機會＋Huca 行情）、`NotifyPreference` 表與 `matchesPreference` 純函式（預留分流）。
+- ❌ 不含：用戶自助設定通知範圍的 UI、分級延遲、金流、多平台整合、Rich Menu、邀請裂變。（皆為後續迭代）

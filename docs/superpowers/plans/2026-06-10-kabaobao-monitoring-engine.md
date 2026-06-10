@@ -67,6 +67,18 @@ model ArbitrageAlert {
   pushedAt  DateTime @default(now())
   @@index([pushedAt])
 }
+
+model NotifyPreference {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  games        String[] @default([])
+  minSavingPct Float?
+  minPrice     Int?
+  maxPrice     Int?
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
 ```
 
 - [ ] **Step 2: 推到 staging DB 並生成 client**
@@ -78,7 +90,7 @@ Expected: `Your database is now in sync with your Prisma schema` + `Generated Pr
 
 ```bash
 git add backend/prisma/schema.prisma
-git commit -m "feat(kapai): 新增 KapaiListing/KapaiBaseline/ArbitrageAlert 表"
+git commit -m "feat(kapai): 新增 KapaiListing/KapaiBaseline/ArbitrageAlert/NotifyPreference 表"
 ```
 
 ---
@@ -94,7 +106,7 @@ git commit -m "feat(kapai): 新增 KapaiListing/KapaiBaseline/ArbitrageAlert 表
 ```typescript
 // backend/src/lib/kapai/logic.test.ts
 import { describe, it, expect } from 'vitest';
-import { median, buildCardKey, isArbitrage, DEFAULT_PARAMS } from './logic';
+import { median, buildCardKey, isArbitrage, matchesPreference, DEFAULT_PARAMS } from './logic';
 
 describe('median', () => {
   it('空陣列回 0', () => expect(median([])).toBe(0));
@@ -117,6 +129,19 @@ describe('isArbitrage', () => {
   it('價格高於門檻回 false', () => expect(isArbitrage({ price: 800, baseline: 1000, sampleSize: 9 }, p)).toBe(false));
   it('價差不足回 false', () => expect(isArbitrage({ price: 650, baseline: 700, sampleSize: 9 }, p)).toBe(false));
   it('命中回 true', () => expect(isArbitrage({ price: 500, baseline: 1000, sampleSize: 9 }, p)).toBe(true));
+});
+
+describe('matchesPreference', () => {
+  const base = { game: 'pkmtw', price: 500, baseline: 1000 };
+  const allOpen = { games: [] as string[], minSavingPct: null, minPrice: null, maxPrice: null, enabled: true };
+  it('總開關關閉回 false', () => expect(matchesPreference(base, { ...allOpen, enabled: false })).toBe(false));
+  it('不限任何條件回 true', () => expect(matchesPreference(base, allOpen)).toBe(true));
+  it('games 不含該卡種回 false', () => expect(matchesPreference(base, { ...allOpen, games: ['pkmjp'] })).toBe(false));
+  it('games 含該卡種回 true', () => expect(matchesPreference(base, { ...allOpen, games: ['pkmtw', 'pkmjp'] })).toBe(true));
+  it('售價低於 minPrice 回 false', () => expect(matchesPreference(base, { ...allOpen, minPrice: 600 })).toBe(false));
+  it('售價高於 maxPrice 回 false', () => expect(matchesPreference(base, { ...allOpen, maxPrice: 400 })).toBe(false));
+  it('省下比例不足 minSavingPct 回 false', () => expect(matchesPreference(base, { ...allOpen, minSavingPct: 0.6 })).toBe(false)); // 省50% < 60%
+  it('省下比例達標回 true', () => expect(matchesPreference(base, { ...allOpen, minSavingPct: 0.4 })).toBe(true)); // 省50% ≥ 40%
 });
 ```
 
@@ -169,18 +194,46 @@ export function isArbitrage(input: ArbitrageInput, params: ArbitrageParams): boo
   if (baseline - price < params.minProfit) return false;
   return true;
 }
+
+// ── 通知分流（結構預留，MVP notifier 先全推，之後接這個過濾）──
+
+export interface AlertForMatch {
+  game: string;
+  price: number;
+  baseline: number;
+}
+
+export interface PreferenceFilter {
+  games: string[];            // 空=不限卡種/語言
+  minSavingPct: number | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+  enabled: boolean;
+}
+
+export function matchesPreference(alert: AlertForMatch, pref: PreferenceFilter): boolean {
+  if (!pref.enabled) return false;
+  if (pref.games.length > 0 && !pref.games.includes(alert.game)) return false;
+  if (pref.minPrice != null && alert.price < pref.minPrice) return false;
+  if (pref.maxPrice != null && alert.price > pref.maxPrice) return false;
+  if (pref.minSavingPct != null && alert.baseline > 0) {
+    const saving = (alert.baseline - alert.price) / alert.baseline;
+    if (saving < pref.minSavingPct) return false;
+  }
+  return true;
+}
 ```
 
 - [ ] **Step 4: 跑測試確認通過**
 
 Run: `cd backend && npx vitest run src/lib/kapai/logic.test.ts`
-Expected: PASS（13 個測試）
+Expected: PASS（21 個測試）
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add backend/src/lib/kapai/logic.ts backend/src/lib/kapai/logic.test.ts
-git commit -m "feat(kapai): 套利計算純邏輯（median/buildCardKey/isArbitrage）+ 測試"
+git commit -m "feat(kapai): 套利計算純邏輯（median/buildCardKey/isArbitrage/matchesPreference）+ 測試"
 ```
 
 ---
@@ -330,14 +383,17 @@ import { prisma } from '../prisma';
 import { linePush } from '../../controllers/line';
 
 interface AlertListing {
-  id: number; name: string; packName: string; cardKey: string;
+  id: number; game: string; name: string; packName: string; cardKey: string;
   condition: string; price: number; sellerNickname: string; sellerArea: string;
 }
 
-/** 推播一筆套利機會給所有已綁定 LINE 的用戶 */
+/** 推播一筆套利機會給已綁定 LINE 的用戶 */
 export async function pushArbitrage(listing: AlertListing, baselineMedian: number): Promise<void> {
   const token = await prisma.setting.findUnique({ where: { key: 'LINE_CHANNEL_ACCESS_TOKEN' } });
   if (!token?.value) return;
+  // MVP：全推給所有綁定用戶。
+  // 之後分流：join NotifyPreference，用 logic.matchesPreference(
+  //   { game: listing.game, price: listing.price, baseline: baselineMedian }, pref) 過濾。
   const users = await prisma.user.findMany({
     where: { lineUid: { not: null } },
     select: { lineUid: true },
