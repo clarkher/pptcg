@@ -1,8 +1,10 @@
 import { Router } from 'express';
-import { buyListing, getMyOrders } from '../controllers/orders';
+import { getMyOrders, getOrder, getOrderByTradeNo } from '../controllers/orders';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
-router.post('/', authMiddleware, buyListing);
-router.get('/mine', authMiddleware, getMyOrders);
+router.use(authMiddleware);
+router.get('/mine', getMyOrders);
+router.get('/by-trade-no/:tradeNo', getOrderByTradeNo);
+router.get('/:id', getOrder);
 export default router;

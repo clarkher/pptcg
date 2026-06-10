@@ -23,7 +23,7 @@ export async function register(req: Request, res: Response) {
   const hashed = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: { email, username, password: hashed },
-    select: { id: true, email: true, username: true, wallet: true },
+    select: { id: true, email: true, username: true, isAdmin: true },
   });
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   res.json({ user, token });
@@ -38,7 +38,7 @@ export async function login(req: Request, res: Response) {
   }
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   res.json({
-    user: { id: user.id, email: user.email, username: user.username, wallet: user.wallet, isAdmin: user.isAdmin },
+    user: { id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin },
     token,
   });
 }
@@ -100,7 +100,7 @@ export async function googleLogin(req: Request, res: Response) {
 
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   res.json({
-    user: { id: user.id, email: user.email, username: user.username, wallet: user.wallet, isAdmin: user.isAdmin },
+    user: { id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin },
     token,
   });
 }
@@ -108,7 +108,7 @@ export async function googleLogin(req: Request, res: Response) {
 export async function me(req: AuthRequest, res: Response) {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, username: true, wallet: true, avatar: true, isAdmin: true, lineUid: true },
+    select: { id: true, email: true, username: true, avatar: true, isAdmin: true, lineUid: true },
   });
   if (!user) {
     res.status(404).json({ error: '使用者不存在' });

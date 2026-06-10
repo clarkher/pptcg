@@ -3,7 +3,7 @@ import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import {
   adminGetListings, adminCreateListing, adminUpdateListing, adminDeleteListing,
-  adminGetOrders, adminUpdateOrder, adminGetStats,
+  adminGetOrders, adminUpdateOrder, refundOrder, adminGetStats,
   adminCreateInventory, adminUpdateInventory, adminDeleteInventory,
   adminCatalog, adminCardWishlist, adminWishlistOverview,
   adminUpdateCard, adminCreateCard, adminOrphanListings,
@@ -25,6 +25,7 @@ router.patch('/listings/:id', ...guard, adminUpdateListing);
 router.delete('/listings/:id', ...guard, adminDeleteListing);
 router.get('/orders', ...guard, adminGetOrders);
 router.patch('/orders/:id', ...guard, adminUpdateOrder);
+router.post('/orders/:id/refund', ...guard, refundOrder);
 
 router.get('/rarities', ...guard, listRarities);
 router.post('/rarities', ...guard, createRarity);

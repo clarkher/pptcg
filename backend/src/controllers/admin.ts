@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { runRestockNotify } from '../lib/restock';
 import { aggregateInventory, becameRestocked, type InventoryRow } from '../lib/inventory';
+import { getPaymentConfig, generateCheckMacValue } from '../lib/ecpay';
 
 // 取某 cardId 目前 active 庫存總量
 async function cardTotalQty(cardId: string): Promise<number> {
@@ -76,9 +77,8 @@ export async function adminDeleteListing(req: AuthRequest, res: Response) {
 export async function adminGetOrders(_req: AuthRequest, res: Response) {
   const orders = await prisma.order.findMany({
     include: {
-      listing: true,
+      items: { include: { listing: { select: { cardName: true, cardImage: true } } } },
       buyer: { select: { username: true, email: true } },
-      seller: { select: { username: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -92,7 +92,7 @@ export async function adminUpdateOrder(req: AuthRequest, res: Response) {
     where: { id },
     data: { status },
     include: {
-      listing: true,
+      items: { include: { listing: { select: { cardName: true } } } },
       buyer: { select: { username: true, email: true } },
     },
   });
@@ -413,4 +413,89 @@ export async function adminLineSetupWebhook(req: AuthRequest, res: Response) {
   const testData = await testRes.json().catch(() => ({}));
 
   res.json({ ok: true, webhookUrl, test: testData });
+}
+
+// ── Refund ────────────────────────────────────────────────
+// POST /api/admin/orders/:id/refund   body: { note? }
+export async function refundOrder(req: AuthRequest, res: Response) {
+  const { id } = req.params as { id: string };
+  const { note } = req.body;
+
+  const order = await prisma.order.findUnique({
+    where: { id },
+    include: { items: true },
+  });
+  if (!order) {
+    res.status(404).json({ error: '訂單不存在' });
+    return;
+  }
+  if (!['paid', 'completed'].includes(order.status)) {
+    res.status(400).json({ error: '只有已付款訂單可退款' });
+    return;
+  }
+
+  // 超商取貨付款 (cvs_cod) 是現金，無法自動退款 → 標記後請手動匯款
+  if (order.paymentMethod === 'cvs_cod') {
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id },
+        data: {
+          status: 'refunded',
+          refundedAt: new Date(),
+          refundNote: note || '超商取貨付款，請手動退款給買家',
+        },
+      });
+      for (const item of order.items) {
+        await tx.listing.update({ where: { id: item.listingId }, data: { status: 'active' } });
+      }
+    });
+    res.json({ ok: true, note: '已標記退款，請手動匯款' });
+    return;
+  }
+
+  if (!order.ecpayTradeNo) {
+    res.status(400).json({ error: '找不到綠界交易號' });
+    return;
+  }
+
+  // 信用卡 / 超商代碼已付款 → 綠界 DoAction 退款
+  const config = getPaymentConfig();
+  const params: Record<string, string> = {
+    MerchantID: config.merchantId,
+    MerchantTradeNo: order.merchantTradeNo,
+    TradeNo: order.ecpayTradeNo,
+    Action: 'R',
+    TotalAmount: String(Math.round(order.total)),
+  };
+  params.CheckMacValue = generateCheckMacValue(params, config.hashKey, config.hashIv);
+
+  const baseUrl = config.isStaging
+    ? 'https://payment-stage.ecpay.com.tw'
+    : 'https://payment.ecpay.com.tw';
+  const body = new URLSearchParams(params).toString();
+  const resp = await fetch(`${baseUrl}/CreditDetail/DoAction`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+    signal: AbortSignal.timeout(30_000),
+  });
+  const text = await resp.text();
+  const result = Object.fromEntries(new URLSearchParams(text));
+
+  if (result.RtnCode !== '1') {
+    res.status(400).json({ error: `綠界退款失敗：${result.RtnMsg ?? text}` });
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.order.update({
+      where: { id },
+      data: { status: 'refunded', refundedAt: new Date(), refundNote: note || null },
+    });
+    for (const item of order.items) {
+      await tx.listing.update({ where: { id: item.listingId }, data: { status: 'active' } });
+    }
+  });
+
+  res.json({ ok: true });
 }
