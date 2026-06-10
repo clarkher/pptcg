@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { catalogApi } from '../api/catalog';
 import { wishlistApi } from '../api/wishlist';
-import { ordersApi } from '../api/orders';
 import { useAuthStore } from '../stores/authStore';
+import { useCartStore } from '../stores/cartStore';
 import type { CatalogCardDetail, ConditionDef } from '../types/catalog';
 import cardPlaceholder from '../assets/card-placeholder.png';
 
@@ -31,14 +31,15 @@ export function CardDetail() {
 
   const condLabel = (code: string) => conditions.find((c) => c.code === code)?.label ?? code;
 
-  const buy = async (listingId: string) => {
+  const addToCart = useCartStore((s) => s.add);
+
+  const handleAddToCart = async (listingId: string) => {
     if (!token) { navigate('/login'); return; }
     try {
-      await ordersApi.buy(listingId, 1);
-      setMsg('購買成功！');
-      setTimeout(() => navigate('/orders'), 800);
+      await addToCart(listingId);
+      setMsg('已加入購物車 ✓');
     } catch (e: any) {
-      setMsg(e?.response?.data?.error || '購買失敗');
+      setMsg(e?.response?.data?.error || '加入失敗');
     }
   };
 
@@ -91,10 +92,10 @@ export function CardDetail() {
                     {has ? (
                       <>
                         <span style={{ fontSize: 11, color: '#34D399' }}>剩 {v.quantity}</span>
-                        <button onClick={() => buy(v.listingId)} style={{
+                        <button onClick={() => handleAddToCart(v.listingId)} style={{
                           padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
                           background: 'linear-gradient(135deg,#7C3AED,#4F46E5)', color: '#fff', fontSize: 12, fontWeight: 700,
-                        }}>購買</button>
+                        }}>加入購物車</button>
                       </>
                     ) : (
                       <>

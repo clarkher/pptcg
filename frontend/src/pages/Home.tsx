@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, ClipboardList, Wallet } from 'lucide-react';
+import { ShoppingCart, ClipboardList } from 'lucide-react';
 import { listingsApi } from '../api/listings';
 import type { Listing } from '../types';
 import { CardGrid } from '../components/CardGrid';
@@ -72,18 +72,7 @@ export function Home() {
             filter: 'drop-shadow(0 0 8px rgba(0,229,255,0.5))',
           }}
         />
-        {user ? (
-          <button onClick={() => navigate('/profile')} style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-            borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)',
-            color: '#00e5ff', backdropFilter: 'blur(8px)',
-            boxShadow: '0 0 12px rgba(0,229,255,0.1)',
-          }}>
-            <Wallet size={13} />
-            NT${user.wallet.toLocaleString()}
-          </button>
-        ) : (
+        {!user && (
           <button onClick={() => navigate('/login')} style={{
             padding: '7px 18px', borderRadius: 20, fontSize: 12, fontWeight: 800,
             color: '#fff', cursor: 'pointer', border: 'none',

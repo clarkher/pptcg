@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, ClipboardList, Wallet } from 'lucide-react';
+import { ShoppingCart, ClipboardList } from 'lucide-react';
 import { Header } from '../components/Header';
 import { useAuthStore } from '../stores/authStore';
 import { api } from '../api/client';
@@ -281,23 +281,6 @@ export function Profile() {
                 <p style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: -0.5 }}>{user.username}</p>
                 <p style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{user.email}</p>
               </div>
-            </div>
-
-            {/* Wallet */}
-            <div style={{
-              borderRadius: 16, padding: '16px 20px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(167,139,250,0.15)',
-            }}>
-              <div>
-                <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: '#64748B', marginBottom: 6 }}>帳戶餘額</p>
-                <p style={{ fontSize: 32, fontWeight: 900, lineHeight: 1,
-                  background: 'linear-gradient(135deg, #A78BFA, #7C3AED)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  NT${user.wallet.toLocaleString()}
-                </p>
-              </div>
-              <Wallet size={36} style={{ opacity: 0.5, color: '#A78BFA' }} />
             </div>
           </div>
         </div>

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { HelpCircle, CheckCircle2 } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import { listingsApi } from '../api/listings';
-import { ordersApi } from '../api/orders';
 import type { Listing } from '../types';
 import { GameBadge } from '../components/GameBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { SEOHead } from '../components/SEOHead';
 import { useAuthStore } from '../stores/authStore';
+import { useCartStore } from '../stores/cartStore';
 import cardPlaceholder from '../assets/card-placeholder.png';
 
 const COND_LABEL: Record<string, string> = { NM: '近全新', LP: '輕微磨損', MP: '中度磨損', HP: '重度磨損' };
@@ -16,12 +16,13 @@ const COND_COLOR: Record<string, string> = { NM: '#34D399', LP: '#60A5FA', MP: '
 export function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuthStore();
+  const { user } = useAuthStore();
+  const addToCart = useCartStore((s) => s.add);
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
-  const [buying, setBuying] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     listingsApi.getAll().then((all) => {
@@ -30,19 +31,19 @@ export function ListingDetail() {
     });
   }, [id]);
 
-  const handleBuy = async () => {
+  const handleAddToCart = async () => {
     if (!user) { navigate('/login'); return; }
     if (!listing) return;
-    setBuying(true);
+    setAdding(true);
     setError('');
     try {
-      await ordersApi.buy(listing.id, 1);
-      await refreshUser();
-      setSuccess(true);
+      await addToCart(listing.id);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
     } catch (err: any) {
-      setError(err.response?.data?.error || '購買失敗，請稍後再試');
+      setError(err.response?.data?.error || '加入失敗，請稍後再試');
     } finally {
-      setBuying(false);
+      setAdding(false);
     }
   };
 
@@ -218,81 +219,64 @@ export function ListingDetail() {
           </div>
         )}
 
-        {/* Success */}
-        {success && (
-          <div style={{
-            borderRadius: 20, padding: '24px', textAlign: 'center',
-            background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.2)',
-            backdropFilter: 'blur(12px)',
-          }}>
-            <div style={{ marginBottom: 10 }}><CheckCircle2 size={40} color="#34D399" /></div>
-            <p style={{ fontWeight: 800, color: '#34D399', fontSize: 18, marginBottom: 12 }}>購買成功！</p>
-            <button onClick={() => navigate('/orders')} style={{
-              fontSize: 13, fontWeight: 700, color: '#A78BFA',
-              background: 'none', border: 'none', cursor: 'pointer',
-            }}>查看訂單 →</button>
-          </div>
-        )}
       </div>
 
-      {/* Buy bar */}
-      {!success && (
-        <div style={{
-          position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-          width: '100%', maxWidth: 430, padding: '16px 16px',
-          background: 'rgba(6,6,15,0.95)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          {listing.status !== 'active' ? (
-            <div style={{
-              width: '100%', padding: '14px', borderRadius: 16, textAlign: 'center',
-              color: '#475569', fontWeight: 700, fontSize: 14,
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-            }}>
-              此商品已售出
-            </div>
-          ) : user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <p style={{ fontSize: 10, color: '#475569', fontWeight: 600 }}>我的餘額</p>
-                <p style={{ fontSize: 13, fontWeight: 800, color: '#CBD5E1' }}>NT${user.wallet.toLocaleString()}</p>
-              </div>
-              <button
-                onClick={handleBuy}
-                disabled={buying || listing.seller.username === user.username}
-                style={{
-                  flex: 1, padding: '15px', borderRadius: 16, fontWeight: 800,
-                  fontSize: 15, border: 'none', cursor: listing.seller.username === user.username ? 'not-allowed' : 'pointer',
-                  background: listing.seller.username === user.username
-                    ? 'rgba(255,255,255,0.06)'
-                    : 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
-                  color: listing.seller.username === user.username ? '#475569' : '#fff',
-                  opacity: buying ? 0.6 : 1,
-                  boxShadow: listing.seller.username === user.username
-                    ? 'none' : '0 0 24px rgba(139,92,246,0.4)',
-                  transition: 'opacity 0.15s',
-                }}
-              >
-                {buying ? '購買中...'
-                  : listing.seller.username === user.username ? '這是你的商品'
-                  : `立即購買 NT$${listing.price.toLocaleString()}`}
-              </button>
-            </div>
-          ) : (
-            <button onClick={() => navigate('/login')} style={{
-              width: '100%', padding: '15px', borderRadius: 16, border: 'none',
-              fontWeight: 800, fontSize: 15, color: '#fff', cursor: 'pointer',
-              background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
-              boxShadow: '0 0 24px rgba(139,92,246,0.4)',
-            }}>
-              登入以購買
-            </button>
-          )}
-          <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
-        </div>
-      )}
+      {/* Add-to-cart bar */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: '100%', maxWidth: 430, padding: '16px 16px',
+        background: 'rgba(6,6,15,0.95)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        {listing.status !== 'active' ? (
+          <div style={{
+            width: '100%', padding: '14px', borderRadius: 16, textAlign: 'center',
+            color: '#475569', fontWeight: 700, fontSize: 14,
+            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+          }}>
+            此商品已售出
+          </div>
+        ) : user ? (
+          <button
+            onClick={handleAddToCart}
+            disabled={adding || listing.seller.username === user.username}
+            style={{
+              width: '100%', padding: '15px', borderRadius: 16, fontWeight: 800,
+              fontSize: 15, border: 'none', cursor: listing.seller.username === user.username ? 'not-allowed' : 'pointer',
+              background: listing.seller.username === user.username
+                ? 'rgba(255,255,255,0.06)'
+                : added
+                  ? 'linear-gradient(135deg,#34D399,#059669)'
+                  : 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+              color: listing.seller.username === user.username ? '#475569' : '#fff',
+              opacity: adding ? 0.6 : 1,
+              boxShadow: listing.seller.username === user.username
+                ? 'none'
+                : added
+                  ? '0 0 24px rgba(52,211,153,0.4)'
+                  : '0 0 24px rgba(139,92,246,0.4)',
+              transition: 'opacity 0.15s, background 0.2s',
+            }}
+          >
+            {adding ? '加入中...'
+              : listing.seller.username === user.username ? '這是你的商品'
+              : added ? '已加入購物車 ✓'
+              : '+ 加入購物車'}
+          </button>
+        ) : (
+          <button onClick={() => navigate('/login')} style={{
+            width: '100%', padding: '15px', borderRadius: 16, border: 'none',
+            fontWeight: 800, fontSize: 15, color: '#fff', cursor: 'pointer',
+            background: 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+            boxShadow: '0 0 24px rgba(139,92,246,0.4)',
+          }}>
+            登入以購買
+          </button>
+        )}
+        <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
+      </div>
     </div>
   );
 }

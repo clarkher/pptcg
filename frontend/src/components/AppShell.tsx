@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
-import { Wallet } from 'lucide-react';
+import { useCartStore } from '../stores/cartStore';
+import { ShoppingCart } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
 import brandLogo from '../assets/brand-logo.png';
 
@@ -48,6 +50,13 @@ export function AppShell({ children }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const cartCount = useCartStore(s => s.items.length);
+  const fetchCart = useCartStore(s => s.fetch);
+
+  useEffect(() => {
+    if (user) fetchCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const goTo = (path: string) => {
     if ((path === '/orders' || path === '/profile') && !user) {
@@ -199,7 +208,7 @@ export function AppShell({ children }: Props) {
               border: '1px solid rgba(139,92,246,0.2)',
               boxShadow: '0 0 20px rgba(139,92,246,0.08), inset 0 1px 0 rgba(255,255,255,0.05)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 {/* Avatar */}
                 <div style={{
                   width: 34, height: 34, borderRadius: 11, flexShrink: 0,
@@ -214,22 +223,6 @@ export function AppShell({ children }: Props) {
                   <p style={{ fontSize: 13, fontWeight: 700, color: '#F1F5F9', lineHeight: 1 }}>{user.username}</p>
                   <p style={{ fontSize: 10, fontWeight: 600, color: '#22D3EE', opacity: 0.7, marginTop: 3, letterSpacing: 0.5 }}>PLAYER</p>
                 </div>
-              </div>
-              {/* Wallet */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 10px', borderRadius: 10,
-                background: 'rgba(0,0,0,0.2)',
-                border: '1px solid rgba(167,139,250,0.12)',
-              }}>
-                <Wallet size={15} style={{ color: '#64748B', flexShrink: 0 }} />
-                <span style={{
-                  fontSize: 15, fontWeight: 900,
-                  background: 'linear-gradient(135deg, #00e5ff, #22D3EE)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                }}>
-                  NT${user.wallet.toLocaleString()}
-                </span>
               </div>
             </div>
           ) : (
@@ -250,6 +243,32 @@ export function AppShell({ children }: Props) {
       {/* ── Main content ─────────────── */}
       <main style={{ flex: 1, minWidth: 0, position: 'relative' }}>
         <NotificationBell />
+        {/* Cart icon — fixed top-right, next to notification bell */}
+        {user && (
+          <div style={{ position: 'fixed', top: 14, right: 64, zIndex: 60 }}>
+            <button
+              onClick={() => navigate('/cart')}
+              aria-label="購物車"
+              style={{
+                position: 'relative', width: 40, height: 40, borderRadius: 12, cursor: 'pointer',
+                background: 'rgba(6,6,15,0.9)', border: '1px solid rgba(167,139,250,0.2)',
+                backdropFilter: 'blur(12px)', color: '#A78BFA',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <ShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, padding: '0 4px',
+                  borderRadius: 9, background: '#8B5CF6', color: '#fff', fontSize: 10, fontWeight: 800,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {cartCount > 9 ? '9+' : cartCount}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           {children}
         </div>
