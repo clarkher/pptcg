@@ -4,6 +4,7 @@ import { catalogApi } from '../api/catalog';
 import { wishlistApi } from '../api/wishlist';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
+import { QtyStepper } from '../components/QtyStepper';
 import type { CatalogCardDetail, ConditionDef } from '../types/catalog';
 import cardPlaceholder from '../assets/card-placeholder.png';
 
@@ -16,6 +17,9 @@ export function CardDetail() {
   const [conditions, setConditions] = useState<ConditionDef[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
+  const [qtys, setQtys] = useState<Record<string, number>>({});
+  const getQty = (listingId: string) => qtys[listingId] ?? 1;
+  const setQty = (listingId: string, v: number) => setQtys((m) => ({ ...m, [listingId]: v }));
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -36,7 +40,7 @@ export function CardDetail() {
   const handleAddToCart = async (listingId: string) => {
     if (!token) { navigate('/login'); return; }
     try {
-      await addToCart(listingId);
+      await addToCart(listingId, getQty(listingId));
       setMsg('已加入購物車 ✓');
     } catch (e: any) {
       setMsg(e?.response?.data?.error || '加入失敗');
@@ -84,6 +88,7 @@ export function CardDetail() {
                 return (
                   <div key={v.listingId} style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10,
+                    flexWrap: 'wrap',
                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
                   }}>
                     <span style={{ fontSize: 13, color: '#E2E8F0', fontWeight: 600 }}>{v.variant}</span>
@@ -91,9 +96,11 @@ export function CardDetail() {
                     <span style={{ marginLeft: 'auto', fontSize: 15, fontWeight: 900, color: '#FBBF24' }}>NT${v.price.toLocaleString()}</span>
                     {has ? (
                       <>
-                        <span style={{ fontSize: 11, color: '#34D399' }}>剩 {v.quantity}</span>
+                        <span style={{ fontSize: 11, color: '#34D399', width: '100%', marginTop: -2 }}>剩 {v.quantity}</span>
+                        <QtyStepper size="sm" value={getQty(v.listingId)} max={v.quantity}
+                          onChange={(n) => setQty(v.listingId, n)} />
                         <button onClick={() => handleAddToCart(v.listingId)} style={{
-                          padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                          marginLeft: 'auto', padding: '7px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
                           background: 'linear-gradient(135deg,#7C3AED,#4F46E5)', color: '#fff', fontSize: 12, fontWeight: 700,
                         }}>加入購物車</button>
                       </>

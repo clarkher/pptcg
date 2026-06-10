@@ -9,6 +9,7 @@ import {
   getLogisticsConfig, buildStoreMapParams,
   createLogisticsOrder, type ShippingType,
 } from '../lib/ecpay-logistics';
+import { decrementStock } from '../lib/inventory';
 
 const BACKEND_URL = () => process.env.BACKEND_URL!;
 const FRONTEND_URL = () => process.env.FRONTEND_URL!;
@@ -209,8 +210,12 @@ export async function confirmStore(req: AuthRequest, res: Response) {
   }
 
   await prisma.cartItem.deleteMany({ where: { userId: req.userId! } });
+  // 依購買數量扣庫存（剩餘 <= 0 才標 sold），而非整筆 listing 標 sold
   for (const ci of snapshot) {
-    await prisma.listing.update({ where: { id: ci.listingId }, data: { status: 'sold' } });
+    const l = await prisma.listing.findUnique({ where: { id: ci.listingId }, select: { quantity: true } });
+    if (!l) continue;
+    const next = decrementStock(l.quantity, ci.quantity);
+    await prisma.listing.update({ where: { id: ci.listingId }, data: { quantity: next.quantity, status: next.status } });
   }
   await prisma.pendingCheckout.delete({ where: { id: pendingId } });
 

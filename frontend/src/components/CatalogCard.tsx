@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Plus, Check } from 'lucide-react';
 import type { CatalogCard as CatalogCardType } from '../types/catalog';
 import cardPlaceholder from '../assets/card-placeholder.png';
 
@@ -6,11 +8,29 @@ interface Props {
   rarityColor: (code: string | null) => string;
   onClick: () => void;
   onWish: () => void;
+  /** 加入「最低價且有庫存」品相。回傳是否成功（未登入會導去登入並回 false）。 */
+  onAddToCart?: () => Promise<boolean>;
 }
 
-export function CatalogCard({ card, rarityColor, onClick, onWish }: Props) {
+export function CatalogCard({ card, rarityColor, onClick, onWish, onAddToCart }: Props) {
   const inStock = card.totalQty > 0;
   const rColor = rarityColor(card.rarity);
+  const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  const handleQuickAdd = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onAddToCart || adding) return;
+    setAdding(true);
+    try {
+      if (await onAddToCart()) {
+        setAdded(true);
+        setTimeout(() => setAdded(false), 1500);
+      }
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <div className="card-item" onClick={onClick} style={{ position: 'relative' }}>
@@ -50,6 +70,29 @@ export function CatalogCard({ card, rarityColor, onClick, onWish }: Props) {
           position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, zIndex: 3,
           background: 'linear-gradient(to top, rgba(9,9,26,0.9), transparent)', pointerEvents: 'none',
         }} />
+
+        {/* Quick add-to-cart（加入最低價有庫存品相） */}
+        {inStock && card.cheapestListingId && onAddToCart && (
+          <button
+            onClick={handleQuickAdd}
+            disabled={adding}
+            aria-label="加入購物車"
+            title={card.variantCount > 1 ? '加入最低價品相' : '加入購物車'}
+            style={{
+              position: 'absolute', bottom: 8, right: 8, zIndex: 5,
+              width: 32, height: 32, borderRadius: 10, border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', opacity: adding ? 0.6 : 1,
+              background: added
+                ? 'linear-gradient(135deg,#34D399,#059669)'
+                : 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+              boxShadow: added ? '0 0 14px rgba(52,211,153,0.5)' : '0 2px 10px rgba(109,40,236,0.5)',
+              transition: 'background 0.2s',
+            }}
+          >
+            {added ? <Check size={17} /> : <Plus size={18} />}
+          </button>
+        )}
       </div>
 
       {/* Info */}

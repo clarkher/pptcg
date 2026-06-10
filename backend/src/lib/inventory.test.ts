@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { aggregateInventory, becameRestocked, type InventoryRow } from './inventory';
+import {
+  aggregateInventory, becameRestocked, clampCartSet, decrementStock,
+  type InventoryRow,
+} from './inventory';
 
 const rows = (...r: Partial<InventoryRow>[]): InventoryRow[] =>
   r.map((x) => ({ cardId: 'c1', variant: '標準', condition: 'NM', price: 100, quantity: 1, ...x }));
@@ -32,6 +35,33 @@ describe('aggregateInventory', () => {
     expect(agg.totalQty).toBe(2);
     expect(agg.minPrice).toBe(300);
     expect(agg.variantCount).toBe(2);
+  });
+});
+
+describe('clampCartSet（購物車設定絕對數量）', () => {
+  it('夾到 1..庫存', () => {
+    expect(clampCartSet(3, 5)).toBe(3);
+    expect(clampCartSet(9, 5)).toBe(5);
+    expect(clampCartSet(0, 5)).toBe(1);
+    expect(clampCartSet(-2, 5)).toBe(1);
+  });
+  it('非數字 → 1', () => {
+    expect(clampCartSet(NaN as unknown as number, 5)).toBe(1);
+  });
+});
+
+describe('decrementStock（售出後扣庫存）', () => {
+  it('買 2 / 庫存 5 → 剩 3，維持 active', () => {
+    expect(decrementStock(5, 2)).toEqual({ quantity: 3, status: 'active' });
+  });
+  it('買到剛好 0 → 標 sold', () => {
+    expect(decrementStock(2, 2)).toEqual({ quantity: 0, status: 'sold' });
+  });
+  it('買超過庫存 → 夾到 0、標 sold', () => {
+    expect(decrementStock(1, 3)).toEqual({ quantity: 0, status: 'sold' });
+  });
+  it('買 1 / 庫存 1 → sold（不是整筆消失剩餘）', () => {
+    expect(decrementStock(1, 1)).toEqual({ quantity: 0, status: 'sold' });
   });
 });
 

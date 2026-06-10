@@ -8,6 +8,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { SEOHead } from '../components/SEOHead';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
+import { QtyStepper } from '../components/QtyStepper';
 import cardPlaceholder from '../assets/card-placeholder.png';
 
 const COND_LABEL: Record<string, string> = { NM: '近全新', LP: '輕微磨損', MP: '中度磨損', HP: '重度磨損' };
@@ -23,6 +24,7 @@ export function ListingDetail() {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState('');
+  const [qty, setQty] = useState(1);
 
   useEffect(() => {
     listingsApi.getAll().then((all) => {
@@ -37,7 +39,7 @@ export function ListingDetail() {
     setAdding(true);
     setError('');
     try {
-      await addToCart(listing.id);
+      await addToCart(listing.id, qty);
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (err: any) {
@@ -223,7 +225,7 @@ export function ListingDetail() {
 
       {/* Add-to-cart bar */}
       <div style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', zIndex: 50,
         width: '100%', maxWidth: 430, padding: '16px 16px',
         background: 'rgba(6,6,15,0.95)',
         backdropFilter: 'blur(24px)',
@@ -239,32 +241,39 @@ export function ListingDetail() {
             此商品已售出
           </div>
         ) : user ? (
-          <button
-            onClick={handleAddToCart}
-            disabled={adding || listing.seller.username === user.username}
-            style={{
-              width: '100%', padding: '15px', borderRadius: 16, fontWeight: 800,
-              fontSize: 15, border: 'none', cursor: listing.seller.username === user.username ? 'not-allowed' : 'pointer',
-              background: listing.seller.username === user.username
-                ? 'rgba(255,255,255,0.06)'
-                : added
-                  ? 'linear-gradient(135deg,#34D399,#059669)'
-                  : 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
-              color: listing.seller.username === user.username ? '#475569' : '#fff',
-              opacity: adding ? 0.6 : 1,
-              boxShadow: listing.seller.username === user.username
-                ? 'none'
-                : added
-                  ? '0 0 24px rgba(52,211,153,0.4)'
-                  : '0 0 24px rgba(139,92,246,0.4)',
-              transition: 'opacity 0.15s, background 0.2s',
-            }}
-          >
-            {adding ? '加入中...'
-              : listing.seller.username === user.username ? '這是你的商品'
-              : added ? '已加入購物車 ✓'
-              : '+ 加入購物車'}
-          </button>
+          listing.seller.username === user.username ? (
+            <div style={{
+              width: '100%', padding: '15px', borderRadius: 16, textAlign: 'center',
+              fontWeight: 800, fontSize: 15, color: '#475569',
+              background: 'rgba(255,255,255,0.06)',
+            }}>
+              這是你的商品
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <QtyStepper value={qty} max={listing.quantity} onChange={setQty} />
+              <button
+                onClick={handleAddToCart}
+                disabled={adding}
+                style={{
+                  flex: 1, padding: '15px', borderRadius: 16, fontWeight: 800,
+                  fontSize: 15, border: 'none', cursor: 'pointer',
+                  background: added
+                    ? 'linear-gradient(135deg,#34D399,#059669)'
+                    : 'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+                  color: '#fff', opacity: adding ? 0.6 : 1,
+                  boxShadow: added
+                    ? '0 0 24px rgba(52,211,153,0.4)'
+                    : '0 0 24px rgba(139,92,246,0.4)',
+                  transition: 'opacity 0.15s, background 0.2s',
+                }}
+              >
+                {adding ? '加入中...'
+                  : added ? '已加入購物車 ✓'
+                  : `加入購物車 · NT$${(listing.price * qty).toLocaleString()}`}
+              </button>
+            </div>
+          )
         ) : (
           <button onClick={() => navigate('/login')} style={{
             width: '100%', padding: '15px', borderRadius: 16, border: 'none',
