@@ -3,14 +3,15 @@ import { Package } from 'lucide-react';
 import { ordersApi } from '../api/orders';
 import type { Order } from '../types';
 import { Header } from '../components/Header';
-import { GameBadge } from '../components/GameBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
-const STATUS: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending:   { label: '待出貨', color: '#FBBF24', bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.25)' },
-  shipped:   { label: '已出貨', color: '#60A5FA', bg: 'rgba(96,165,250,0.1)',  border: 'rgba(96,165,250,0.25)' },
-  completed: { label: '已完成', color: '#34D399', bg: 'rgba(52,211,153,0.1)',  border: 'rgba(52,211,153,0.25)' },
-  cancelled: { label: '已取消', color: '#94A3B8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.2)' },
+const STATUS_LABEL: Record<string, { label: string; color: string }> = {
+  pending_payment: { label: '待付款', color: '#F59E0B' },
+  paid: { label: '已付款', color: '#34D399' },
+  shipped: { label: '已出貨', color: '#60A5FA' },
+  completed: { label: '已完成', color: '#34D399' },
+  cancelled: { label: '已取消', color: '#64748B' },
+  refunded: { label: '已退款', color: '#EF4444' },
 };
 
 export function Orders() {
@@ -22,7 +23,7 @@ export function Orders() {
   }, []);
 
   return (
-    <div style={{ paddingBottom: 112 }} className="page-enter">
+    <div style={{ paddingBottom: 128 }} className="page-enter">
       <Header title="我的訂單" />
 
       <div style={{ padding: '8px 16px 0' }}>
@@ -42,53 +43,97 @@ export function Orders() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {orders.map((order) => {
-              const s = STATUS[order.status] ?? STATUS['pending'];
+              const s = STATUS_LABEL[order.status] ?? STATUS_LABEL['pending_payment'];
               return (
                 <div key={order.id} style={{
-                  borderRadius: 20, padding: '16px',
-                  background: 'rgba(255,255,255,0.03)',
+                  borderRadius: 16, padding: '16px',
+                  background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.07)',
                   backdropFilter: 'blur(12px)',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                    {order.listing.cardImage && (
-                      <div style={{
-                        width: 60, height: 60, borderRadius: 12, overflow: 'hidden',
-                        flexShrink: 0, background: '#09091a',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                      }}>
-                        <img src={order.listing.cardImage} alt={order.listing.cardName}
-                          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }} />
-                      </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-                        <GameBadge game={order.listing.cardGame} />
-                        <span style={{
-                          fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 20,
-                          color: s.color, background: s.bg, border: `1px solid ${s.border}`,
-                        }}>{s.label}</span>
-                      </div>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: '#F1F5F9', lineHeight: 1.3 }}>
-                        {order.listing.cardName}
+                  {/* 訂單編號 + 日期 + 狀態 */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 11, color: '#64748B', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {order.merchantTradeNo}
                       </p>
-                      <p style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>
-                        賣家：<span style={{ color: '#8B5CF6' }}>{order.seller.username}</span>
-                        {' · '}x{order.quantity}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <p style={{
-                        fontSize: 16, fontWeight: 900,
-                        background: 'linear-gradient(135deg, #A78BFA, #7C3AED)',
-                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                      }}>
-                        NT${order.total.toLocaleString()}
-                      </p>
-                      <p style={{ fontSize: 10, color: '#475569', marginTop: 4, fontWeight: 600 }}>
+                      <p style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
                         {new Date(order.createdAt).toLocaleDateString('zh-TW')}
                       </p>
                     </div>
+                    <span style={{
+                      fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, flexShrink: 0,
+                      color: s.color, background: `${s.color}1A`, border: `1px solid ${s.color}40`,
+                    }}>{s.label}</span>
+                  </div>
+
+                  {/* 品項列表 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {order.items.map((item) => (
+                      <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                          width: 44, height: 44, borderRadius: 10, overflow: 'hidden',
+                          flexShrink: 0, background: '#09091a',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                        }}>
+                          {item.listing.cardImage && (
+                            <img src={item.listing.cardImage} alt={item.listing.cardName}
+                              style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 3 }} />
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#F1F5F9', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.listing.cardName}
+                          </p>
+                          <p style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
+                            {item.listing.condition} · ×{item.quantity}
+                          </p>
+                        </div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#94A3B8', flexShrink: 0 }}>
+                          NT${(item.price * item.quantity).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 超商繳費代碼（待付款） */}
+                  {order.cvsPaymentCode && order.status === 'pending_payment' && (
+                    <div style={{
+                      background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)',
+                      borderRadius: 12, padding: '10px 12px', marginTop: 12,
+                    }}>
+                      <p style={{ color: '#64748B', fontSize: 11, fontWeight: 700, marginBottom: 4 }}>超商繳費代碼</p>
+                      <p style={{ color: '#34D399', fontWeight: 900, fontSize: 16, letterSpacing: 2, wordBreak: 'break-all' }}>
+                        {order.cvsPaymentCode}
+                      </p>
+                      {order.cvsExpireDate && (
+                        <p style={{ color: '#64748B', fontSize: 11, marginTop: 4 }}>
+                          請於 {order.cvsExpireDate} 前繳款
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 取貨門市（超商取貨付款） */}
+                  {order.paymentMethod === 'cvs_cod' && order.storeName && (
+                    <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 10 }}>
+                      取貨門市：<span style={{ color: '#A78BFA', fontWeight: 700 }}>{order.storeName}</span>
+                    </p>
+                  )}
+
+                  {/* 合計 */}
+                  <div style={{
+                    borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 12, paddingTop: 10,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}>
+                    <span style={{ fontSize: 13, color: '#94A3B8', fontWeight: 700 }}>合計</span>
+                    <span style={{
+                      fontSize: 16, fontWeight: 900,
+                      background: 'linear-gradient(135deg, #A78BFA, #7C3AED)',
+                      WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                    }}>
+                      NT${order.total.toLocaleString()}
+                    </span>
                   </div>
                 </div>
               );
