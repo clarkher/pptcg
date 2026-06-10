@@ -10,15 +10,24 @@ export interface AdminStats {
   revenue: number;
 }
 
+export interface AdminOrderItem {
+  quantity: number;
+  price: number;
+  listing: { cardName: string; cardImage: string };
+}
+
 export interface AdminOrder {
   id: string;
-  listing: Listing;
-  buyer: { username: string; email: string };
-  seller: { username: string };
-  quantity: number;
+  merchantTradeNo: string;
   total: number;
+  paymentMethod: string; // 'credit' | 'cvs' | 'cvs_cod'
+  paymentStatus: string;
   status: string;
+  items: AdminOrderItem[];
+  buyer: { username: string; email: string };
   createdAt: string;
+  refundedAt?: string;
+  refundNote?: string;
 }
 
 type ListingInput = Partial<Listing & { status: string }>;
@@ -31,6 +40,8 @@ export const adminApi = {
   deleteListing: (id: string) => api.delete(`/admin/listings/${id}`).then((r) => r.data),
   getOrders: () => api.get<AdminOrder[]>('/admin/orders').then((r) => r.data),
   updateOrder: (id: string, status: string) => api.patch<AdminOrder>(`/admin/orders/${id}`, { status }).then((r) => r.data),
+  refundOrder: (id: string, note?: string) =>
+    api.post<{ ok: boolean; note?: string }>(`/admin/orders/${id}/refund`, { note }).then((r) => r.data),
 
   // ── Catalog 管理 ──
   catalog: (params: Record<string, unknown>) => api.get('/admin/catalog', { params }).then((r) => r.data),
