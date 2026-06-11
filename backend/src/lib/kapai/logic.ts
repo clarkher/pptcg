@@ -41,6 +41,50 @@ export function isArbitrage(input: ArbitrageInput, params: ArbitrageParams): boo
   return true;
 }
 
+// ── 對 Huca 行情的嚴格比價（日英卡）──
+
+export interface HucaArbParams {
+  discountThreshold: number; // 卡拍拍售價 ≤ Huca基準 × 此值
+  minProfit: number;         // Huca基準 − 售價 ≥ 此值
+  minOfferCount: number;     // Huca 成交數下限（行情可靠度）
+  maxSpreadRatio: number;    // Huca high/low 比值上限（行情穩定度，避免極端掛單）
+}
+
+export const HUCA_STRICT_PARAMS: HucaArbParams = {
+  discountThreshold: 0.7,
+  minProfit: 100,
+  minOfferCount: 10,
+  maxSpreadRatio: 3,
+};
+
+export interface HucaArbInput {
+  price: number;           // 卡拍拍售價
+  condition: string;       // 卡拍拍品相
+  game: string;            // 卡拍拍 game
+  hucaLow: number | null;  // Huca 低價（基準）
+  hucaHigh: number | null; // Huca 高價（穩定度判斷）
+  offerCount: number | null;
+}
+
+/** 日英卡對 Huca 行情的嚴格套利判斷。回傳是否命中。 */
+export function isArbitrageVsHuca(input: HucaArbInput, params: HucaArbParams): boolean {
+  // 只比日英卡
+  if (input.game !== 'pkmjp' && input.game !== 'pkmen') return false;
+  // 只比裸卡（perfect），排除 rated 評級卡與有損
+  if (input.condition !== 'perfect') return false;
+  // 行情可靠度：成交數足夠
+  if (input.offerCount == null || input.offerCount < params.minOfferCount) return false;
+  // 基準需存在且為正
+  const low = input.hucaLow;
+  if (low == null || low <= 0) return false;
+  // 行情穩定度：high/low 不能差太多（避免極端掛單）
+  if (input.hucaHigh != null && input.hucaHigh > 0 && input.hucaHigh / low > params.maxSpreadRatio) return false;
+  // 套利條件
+  if (input.price > low * params.discountThreshold) return false;
+  if (low - input.price < params.minProfit) return false;
+  return true;
+}
+
 // ── 通知分流（結構預留，MVP notifier 先全推，之後接這個過濾）──
 
 export interface AlertForMatch {

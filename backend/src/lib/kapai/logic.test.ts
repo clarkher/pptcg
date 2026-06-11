@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { median, buildCardKey, isArbitrage, matchesPreference, DEFAULT_PARAMS } from './logic';
+import { median, buildCardKey, isArbitrage, matchesPreference, isArbitrageVsHuca, HUCA_STRICT_PARAMS, DEFAULT_PARAMS } from './logic';
 
 describe('median', () => {
   it('空陣列回 0', () => expect(median([])).toBe(0));
@@ -35,4 +35,17 @@ describe('matchesPreference', () => {
   it('售價高於 maxPrice 回 false', () => expect(matchesPreference(base, { ...allOpen, maxPrice: 400 })).toBe(false));
   it('省下比例不足 minSavingPct 回 false', () => expect(matchesPreference(base, { ...allOpen, minSavingPct: 0.6 })).toBe(false));
   it('省下比例達標回 true', () => expect(matchesPreference(base, { ...allOpen, minSavingPct: 0.4 })).toBe(true));
+});
+
+describe('isArbitrageVsHuca（日英卡嚴格比價）', () => {
+  const p = HUCA_STRICT_PARAMS; // 0.7 / 100 / offer10 / spread3
+  const ok = { price: 500, condition: 'perfect', game: 'pkmjp', hucaLow: 1000, hucaHigh: 1200, offerCount: 30 };
+  it('命中回 true', () => expect(isArbitrageVsHuca(ok, p)).toBe(true));
+  it('繁中卡(pkmtw)回 false', () => expect(isArbitrageVsHuca({ ...ok, game: 'pkmtw' }, p)).toBe(false));
+  it('非 perfect(rated)回 false', () => expect(isArbitrageVsHuca({ ...ok, condition: 'rated' }, p)).toBe(false));
+  it('成交數不足回 false', () => expect(isArbitrageVsHuca({ ...ok, offerCount: 2 }, p)).toBe(false));
+  it('Huca 無低價回 false', () => expect(isArbitrageVsHuca({ ...ok, hucaLow: null }, p)).toBe(false));
+  it('行情不穩(high/low 過大)回 false', () => expect(isArbitrageVsHuca({ ...ok, hucaHigh: 5000 }, p)).toBe(false));
+  it('售價高於門檻回 false', () => expect(isArbitrageVsHuca({ ...ok, price: 800 }, p)).toBe(false));
+  it('價差不足回 false', () => expect(isArbitrageVsHuca({ ...ok, price: 950, hucaLow: 1000, hucaHigh: 1000 }, p)).toBe(false));
 });

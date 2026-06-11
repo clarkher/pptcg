@@ -19,7 +19,7 @@ export async function pushArbitrage(listing: AlertListing, baselineMedian: numbe
   });
   const text =
     `🚨 套利雷達\n\n${listing.name}\n套系：${listing.packName}\n番號：${listing.cardKey}｜品相：${listing.condition}\n\n` +
-    `💰 售價 NT$${listing.price}（行情 NT$${baselineMedian}）\n📉 省 NT$${baselineMedian - listing.price}\n` +
+    `💰 售價 NT$${listing.price}（Huca 市價 NT$${baselineMedian}）\n📉 省 NT$${baselineMedian - listing.price}\n` +
     `賣家：${listing.sellerNickname}（${listing.sellerArea}）\n\n` +
     `https://trade.kapaipai.tw/product/${listing.id}`;
   for (const u of users) {
