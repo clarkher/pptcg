@@ -85,6 +85,35 @@ export function isArbitrageVsHuca(input: HucaArbInput, params: HucaArbParams): b
   return true;
 }
 
+// ── 對純裸卡市價的比價（取代 vs Huca 混合價，因 Huca 偏 PSA10）──
+
+export interface RawArbParams {
+  discountThreshold: number; // 卡拍拍售價 ≤ 裸卡市價 × 此值
+  minProfit: number;         // 裸卡市價 − 售價 ≥ 此值
+  minRawSamples: number;     // 裸卡在售樣本下限（行情可靠度）
+}
+
+export const RAW_PARAMS: RawArbParams = { discountThreshold: 0.7, minProfit: 100, minRawSamples: 3 };
+
+export interface RawArbInput {
+  price: number;
+  condition: string;
+  game: string;
+  rawPriceTwd: number | null;
+  rawSampleCount: number | null;
+}
+
+export function isArbitrageVsRaw(input: RawArbInput, params: RawArbParams): boolean {
+  if (input.game !== 'pkmjp' && input.game !== 'pkmen') return false;
+  if (input.condition !== 'perfect') return false;
+  if (input.rawSampleCount == null || input.rawSampleCount < params.minRawSamples) return false;
+  const raw = input.rawPriceTwd;
+  if (raw == null || raw <= 0) return false;
+  if (input.price > raw * params.discountThreshold) return false;
+  if (raw - input.price < params.minProfit) return false;
+  return true;
+}
+
 // ── 通知分流（結構預留，MVP notifier 先全推，之後接這個過濾）──
 
 export interface AlertForMatch {

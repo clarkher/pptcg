@@ -3,7 +3,7 @@ import { api } from '../../api/client';
 
 interface Hit {
   listingId: number; sellerId: number; cardKey: string; game: string; name: string; price: number;
-  hucaLow: number; offerCount: number; profit: number; discount: number; condition: string;
+  rawPriceTwd: number; rawSamples: number; profit: number; discount: number; condition: string;
 }
 
 const LANG: Record<string, string> = { pkmjp: '日文', pkmen: '英文', pkmtw: '繁中' };
@@ -61,7 +61,7 @@ export default function AdminKapai() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
             <th style={th}>番號</th><th style={th}>語言</th><th style={th}>卡名</th><th style={th}>卡拍拍售價</th>
-            <th style={th}>Huca 市價</th><th style={th}>成交數</th><th style={th}>省</th><th style={th}>折扣</th><th style={th}></th>
+            <th style={th}>裸卡市價</th><th style={th}>裸卡樣本</th><th style={th}>省</th><th style={th}>折扣</th><th style={th}></th>
           </tr></thead>
           <tbody>{hits.map(h => (
             <tr key={h.listingId}>
@@ -69,8 +69,8 @@ export default function AdminKapai() {
               <td style={cell}>{LANG[h.game] ?? h.game}</td>
               <td style={cell}>{h.name}</td>
               <td style={{ ...cell, color: '#4ADE80', fontWeight: 700 }}>NT${h.price.toLocaleString()}</td>
-              <td style={cell}>NT${h.hucaLow.toLocaleString()}</td>
-              <td style={cell}>{h.offerCount}</td>
+              <td style={cell}>NT${h.rawPriceTwd.toLocaleString()}</td>
+              <td style={cell}>{h.rawSamples}</td>
               <td style={{ ...cell, color: '#F87171', fontWeight: 700 }}>NT${h.profit.toLocaleString()}</td>
               <td style={cell}>{Math.round(h.discount * 100)}%</td>
               <td style={cell}><a href={`https://trade.kapaipai.tw/shop/${h.sellerId}/${h.listingId}`} target="_blank" rel="noreferrer" style={{ color: '#60A5FA' }}>↗</a></td>

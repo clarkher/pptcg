@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
 import { fetchLatestProducts } from './scraper';
-import { isArbitrageVsHuca, HUCA_STRICT_PARAMS, buildCardKey } from './logic';
+import { isArbitrageVsRaw, RAW_PARAMS, buildCardKey } from './logic';
+import { getRawPrice } from './huca-raw';
 
 export interface ScanHit {
   listingId: number;
@@ -9,15 +10,15 @@ export interface ScanHit {
   game: string;
   name: string;
   price: number;
-  hucaLow: number;
-  offerCount: number;
+  rawPriceTwd: number;
+  rawSamples: number;
   profit: number;
   discount: number;
   condition: string;
 }
 
 /**
- * 即時掃描：抓卡拍拍最新商品，對 Huca 嚴格比價，回傳當前套利機會。
+ * 即時掃描：抓卡拍拍最新商品，對「純裸卡市價」嚴格比價，回當前套利機會。
  * 純讀取 — 不建 alert、不推播。供後台檢視用。
  */
 export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[] }> {
@@ -33,22 +34,24 @@ export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[
     if (Number.isNaN(num)) continue;
     const cards = await prisma.hucaCard.findMany({
       where: { setCode: p.packId },
-      select: { cardNumber: true, nameZh: true, lowPriceTwd: true, highPriceTwd: true, offerCount: true },
+      select: { id: true, cardNumber: true, nameZh: true },
     });
     const m = cards.find((c) => parseInt(c.cardNumber, 10) === num);
     if (!m) continue;
+    const raw = await getRawPrice(m.id);
+    if (!raw) continue;
     const price = parseInt(p.price, 10);
     if (
-      isArbitrageVsHuca(
-        { price, condition: p.condition, game: p.game, hucaLow: m.lowPriceTwd, hucaHigh: m.highPriceTwd, offerCount: m.offerCount },
-        HUCA_STRICT_PARAMS
+      isArbitrageVsRaw(
+        { price, condition: p.condition, game: p.game, rawPriceTwd: raw.rawPriceTwd, rawSampleCount: raw.sampleCount },
+        RAW_PARAMS
       )
     ) {
-      const low = m.lowPriceTwd!;
       hits.push({
-        listingId: p.id, sellerId: p.sellerId, cardKey, game: p.game, name: m.nameZh ?? p.productKey, price,
-        hucaLow: low, offerCount: m.offerCount ?? 0,
-        profit: low - price, discount: price / low, condition: p.condition,
+        listingId: p.id, sellerId: p.sellerId, cardKey, game: p.game,
+        name: m.nameZh ?? p.productKey, price,
+        rawPriceTwd: raw.rawPriceTwd, rawSamples: raw.sampleCount,
+        profit: raw.rawPriceTwd - price, discount: price / raw.rawPriceTwd, condition: p.condition,
       });
     }
   }

@@ -237,6 +237,10 @@ model HucaCard {
   offerCount      Int?                    // Recent transaction count (liquidity indicator)
   priceValidUntil DateTime?               // When Huca's price snapshot expires (usually +7d)
   priceUpdatedAt  DateTime?               // When we last successfully scraped a price
+  snkrdunkId      Int?                    // Snkrdunk product id（查純裸卡價用）
+  rawPriceTwd     Int?                    // 純裸卡市價中位數 TWD（Snkrdunk 在售篩裸卡）
+  rawSampleCount  Int?                    // 裸卡在售筆數（可靠度）
+  rawUpdatedAt    DateTime?               // 裸卡價最後更新時間
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
