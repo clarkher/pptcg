@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { useNavigate, useLocation, Outlet, Link } from 'react-router-dom';
-import { LayoutDashboard, Layers, Package, LayoutGrid, Settings, Bell, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Layers, Package, LayoutGrid, Settings, Bell, MessageCircle, Radar, TrendingUp } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 const NAV: { path: string; label: string; icon: ReactNode; exact?: boolean }[] = [
@@ -9,6 +9,8 @@ const NAV: { path: string; label: string; icon: ReactNode; exact?: boolean }[] =
   { path: '/admin/wishlist',     label: '敲碗總覽',  icon: <Bell size={16} /> },
   { path: '/admin/listings',     label: '商品管理',  icon: <Layers size={16} /> },
   { path: '/admin/orders',       label: '訂單管理',  icon: <Package size={16} /> },
+  { path: '/admin/kapai',        label: '卡報報雷達', icon: <Radar size={16} /> },
+  { path: '/admin/huca',         label: 'Huca 行情', icon: <TrendingUp size={16} /> },
   { path: '/admin/refdata',      label: '資料管理',  icon: <Settings size={16} /> },
   { path: '/admin/line-settings',label: 'LINE Bot', icon: <MessageCircle size={16} /> },
 ];

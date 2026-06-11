@@ -1,0 +1,34 @@
+name: Update Huca Prices (每日行情更新)
+
+# 卡報報「晨間定錨」：每天爬 Huca 更新卡價，供卡拍拍套利比價的市場基準
+on:
+  schedule:
+    - cron: '0 22 * * *' # UTC 22:00 = 台灣 06:00
+  workflow_dispatch: {} # 也可手動觸發
+
+jobs:
+  refresh-huca:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 安裝 backend 依賴
+        run: cd backend && npm ci
+
+      - name: 生成 Prisma Client
+        run: cd backend && npx prisma generate
+
+      - name: 安裝 Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: 爬 Huca 更新行情（staging Neon）
+        run: cd backend && railway run --service ${{ secrets.RAILWAY_STAGING_SERVICE_ID }} npm run scrape:huca:refresh
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_ENVIRONMENT_ID: ${{ secrets.RAILWAY_PROD_ENV_ID }}

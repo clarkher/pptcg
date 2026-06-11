@@ -14,6 +14,7 @@ import {
   listConditions, createCondition, updateCondition, deleteCondition,
   listSeriesDefs, createSeriesDef, updateSeriesDef, deleteSeriesDef,
 } from '../controllers/refdata';
+import { adminKapaiScan, adminHucaCards } from '../controllers/kapai-admin';
 
 const router = Router();
 const guard = [authMiddleware, adminMiddleware];
@@ -57,5 +58,9 @@ router.get('/settings', ...guard, adminGetSettings);
 router.put('/settings/:key', ...guard, adminUpsertSetting);
 router.post('/line/bind-token', authMiddleware, adminGenLineBindToken); // kept for backwards compat
 router.post('/line/setup-webhook', ...guard, adminLineSetupWebhook);   // auto-configure LINE webhook
+
+// 卡報報監控檢視
+router.get('/kapai/scan', ...guard, adminKapaiScan); // 立即掃描當前套利（不推不存）
+router.get('/huca', ...guard, adminHucaCards);        // Huca 行情純檢視
 
 export default router;
