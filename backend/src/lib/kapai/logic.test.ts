@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { median, buildCardKey, isArbitrage, matchesPreference, isArbitrageVsHuca, isArbitrageVsRaw, isArbitrageVsKapai, HUCA_STRICT_PARAMS, RAW_PARAMS, KAPAI_PARAMS, DEFAULT_PARAMS } from './logic';
+import { median, buildCardKey, isArbitrage, matchesPreference, isArbitrageVsHuca, isArbitrageVsRaw, isDeal, HUCA_STRICT_PARAMS, RAW_PARAMS, KAPAI_PARAMS, DEFAULT_PARAMS } from './logic';
 
 describe('median', () => {
   it('空陣列回 0', () => expect(median([])).toBe(0));
@@ -62,11 +62,14 @@ describe('isArbitrageVsRaw（對純裸卡市價比價）', () => {
   it('價差不足回 false', () => expect(isArbitrageVsRaw({ ...ok, price: 950, rawPriceTwd: 1000 }, p)).toBe(false));
 });
 
-describe('isArbitrageVsKapai（對卡拍拍官方均價）', () => {
-  const p = KAPAI_PARAMS; // 0.7 / 100 / 行情下限300
-  const ok = { price: 500, avgPrice: 1000 };
-  it('命中回 true', () => expect(isArbitrageVsKapai(ok, p)).toBe(true));
-  it('均價低於下限(聖灰$10/反擊$200)回 false', () => expect(isArbitrageVsKapai({ price: 10, avgPrice: 200 }, p)).toBe(false));
-  it('售價高於門檻回 false', () => expect(isArbitrageVsKapai({ ...ok, price: 800 }, p)).toBe(false));
-  it('價差不足回 false', () => expect(isArbitrageVsKapai({ price: 950, avgPrice: 1000 }, p)).toBe(false));
+describe('isDeal（雙軌套利：必須站內最低 + 明顯低於基準）', () => {
+  const p = KAPAI_PARAMS; // 0.7 / 100 / 基準下限300
+  const ok = { price: 500, baseline: 1000, siteMin: 1200 };
+  it('命中回 true（比站內最低便宜 + 低於基準70%）', () => expect(isDeal(ok, p)).toBe(true));
+  it('站上有更便宜的回 false（報貴的問題）', () => expect(isDeal({ ...ok, siteMin: 450 }, p)).toBe(false));
+  it('與站內最低同價回 false', () => expect(isDeal({ ...ok, siteMin: 500 }, p)).toBe(false));
+  it('站內無其他在售(siteMin=null)仍可比基準', () => expect(isDeal({ ...ok, siteMin: null }, p)).toBe(true));
+  it('基準低於下限(聖灰$10/反擊$200)回 false', () => expect(isDeal({ price: 10, baseline: 200, siteMin: null }, p)).toBe(false));
+  it('售價高於基準門檻回 false', () => expect(isDeal({ ...ok, price: 800, siteMin: 900 }, p)).toBe(false));
+  it('價差不足回 false', () => expect(isDeal({ price: 950, baseline: 1000, siteMin: 1100 }, p)).toBe(false));
 });

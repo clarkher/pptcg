@@ -1,5 +1,5 @@
-// 卡拍拍站內「台灣行情」：用官方 getAvgPriceBySku（站內均價），比自算掛單中位數準
-// sku 格式（破解自前端 getSkuProduct）= game:productKey:packId:packCardId:rare
+// 卡拍拍站內行情：同卡 perfect-only 賣家列表（condition=perfect 伺服器端過濾，排除 rated/flawed/other）
+// 官方 getAvgPriceBySku 棄用——實測會混到 rated 評級卡（火伊布官方均1300 vs perfect-only均1191/混合1454）
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
 const BASE = 'https://trade.kapaipai.tw/api';
 
@@ -13,29 +13,43 @@ export function isStandardCard(packId: string, packCardId: string): boolean {
   return true;
 }
 
-export interface KapaiMarket {
-  avgPrice: number; // 卡拍拍站內官方均價
-  lowPrice: number; // 站內最低
+function median(a: number[]): number {
+  const s = [...a].sort((x, y) => x - y);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+}
+
+export interface PerfectMarket {
+  median: number;   // 同卡 perfect 賣價中位數
+  siteMin: number;  // 站內現有 perfect 最低價（排除被評估的那筆本身）
+  count: number;    // perfect 賣家筆數（排除自身）
 }
 
 /**
- * 查某張卡的台灣站內官方均價（getAvgPriceBySku）。
- * 回 null 表非標準卡或無均價資料。
+ * 查某卡「站內 perfect 裸卡」行情（condition=perfect 伺服器過濾，純裸卡不混 PSA）。
+ * excludeId：被評估的商品自身 id（避免它出現在列表裡影響 siteMin）。
+ * 回 null 表非標準卡或站內沒有其他 perfect 在售。
  */
-export async function fetchKapaiMarket(
+export async function fetchPerfectMarket(
   game: string,
-  productKey: string,
   packId: string,
   packCardId: string,
-  rare: string
-): Promise<KapaiMarket | null> {
+  excludeId?: number
+): Promise<PerfectMarket | null> {
   if (!isStandardCard(packId, packCardId)) return null;
-  const sku = `${game}:${productKey}:${packId}:${packCardId}:${rare}`;
-  const res = await fetch(`${BASE}/card/getAvgPriceBySku?sku=${encodeURIComponent(sku)}`, { headers: { 'User-Agent': UA } });
+  const url =
+    `${BASE}/product/listProduct?game=${encodeURIComponent(game)}` +
+    `&packId=${encodeURIComponent(packId)}&packCardId=${encodeURIComponent(packCardId)}` +
+    `&condition=perfect&page=1&pageSize=50`;
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
   if (!res.ok) return null;
   const json: any = await res.json();
-  const avg = json?.data?.avgPrice;
-  const low = json?.data?.lowPrice;
-  if (typeof avg !== 'number' || avg <= 0) return null;
-  return { avgPrice: avg, lowPrice: typeof low === 'number' ? low : avg };
+  const products: any[] = json?.data?.products ?? [];
+  const prices = products
+    .filter((p) => p?.condition === 'perfect' && p?.id !== excludeId) // 雙保險再過濾一次
+    .map((p) => parseInt(p?.price, 10))
+    .filter((p) => !Number.isNaN(p) && p > 0)
+    .sort((a, b) => a - b);
+  if (prices.length === 0) return null;
+  return { median: median(prices), siteMin: prices[0], count: prices.length };
 }

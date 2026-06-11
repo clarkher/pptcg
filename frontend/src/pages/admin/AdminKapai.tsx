@@ -3,7 +3,7 @@ import { api } from '../../api/client';
 
 interface Hit {
   listingId: number; sellerId: number; cardKey: string; game: string; name: string; price: number;
-  avgPrice: number; lowPrice: number; profit: number; discount: number; condition: string;
+  baseline: number; baselineSource: string; siteMin: number | null; profit: number; discount: number; condition: string;
 }
 
 const LANG: Record<string, string> = { pkmjp: '日文', pkmen: '英文', pkmtw: '繁中' };
@@ -61,7 +61,7 @@ export default function AdminKapai() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead><tr>
             <th style={th}>番號</th><th style={th}>語言</th><th style={th}>卡名</th><th style={th}>卡拍拍售價</th>
-            <th style={th}>官方均價</th><th style={th}>站內最低</th><th style={th}>省</th><th style={th}>折扣</th><th style={th}></th>
+            <th style={th}>行情基準</th><th style={th}>站內次低</th><th style={th}>省</th><th style={th}>折扣</th><th style={th}></th>
           </tr></thead>
           <tbody>{hits.map(h => (
             <tr key={h.listingId}>
@@ -69,8 +69,8 @@ export default function AdminKapai() {
               <td style={cell}>{LANG[h.game] ?? h.game}</td>
               <td style={cell}>{h.name}</td>
               <td style={{ ...cell, color: '#4ADE80', fontWeight: 700 }}>NT${h.price.toLocaleString()}</td>
-              <td style={cell}>NT${h.avgPrice.toLocaleString()}</td>
-              <td style={cell}>NT${h.lowPrice.toLocaleString()}</td>
+              <td style={cell}>NT${h.baseline.toLocaleString()}<span style={{ color: '#475569', fontSize: 11 }}>（{h.baselineSource}）</span></td>
+              <td style={cell}>{h.siteMin != null ? `NT$${h.siteMin.toLocaleString()}` : '—'}</td>
               <td style={{ ...cell, color: '#F87171', fontWeight: 700 }}>NT${h.profit.toLocaleString()}</td>
               <td style={cell}>{Math.round(h.discount * 100)}%</td>
               <td style={cell}><a href={`https://trade.kapaipai.tw/shop/${h.sellerId}/${h.listingId}`} target="_blank" rel="noreferrer" style={{ color: '#60A5FA' }}>↗</a></td>

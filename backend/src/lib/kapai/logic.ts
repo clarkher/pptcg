@@ -117,27 +117,38 @@ export function isArbitrageVsRaw(input: RawArbInput, params: RawArbParams): bool
 // ── 對卡拍拍站內「台灣行情」的比價（終極方案，取代 Huca/Snkrdunk）──
 
 export interface KapaiArbParams {
-  discountThreshold: number; // 售價 ≤ 官方均價 × 此值
-  minProfit: number;         // 官方均價 − 售價 ≥ 此值
-  minMarketValue: number;    // 行情下限（過濾低價值小卡，如聖灰$10）
+  discountThreshold: number; // 售價 ≤ 基準 × 此值
+  minProfit: number;         // 基準 − 售價 ≥ 此值
+  minMarketValue: number;    // 基準下限（過濾低價值小卡，如聖灰$10）
+  minSamples: number;        // 繁中：同卡 perfect 賣家數下限（基準可信度）
 }
 
 export const KAPAI_PARAMS: KapaiArbParams = {
   discountThreshold: 0.7,
   minProfit: 100,
   minMarketValue: 300,
+  minSamples: 5,
 };
 
-export interface KapaiArbInput {
-  price: number;
-  avgPrice: number; // 卡拍拍官方站內均價
+export interface DealInput {
+  price: number;          // 新上架售價
+  baseline: number;       // 行情基準（日英=Huca裸卡成交價；繁中=站內perfect中位）
+  siteMin: number | null; // 卡拍拍站內現有 perfect 最低價（排除自身）；null=站內無其他在售
 }
 
-export function isArbitrageVsKapai(input: KapaiArbInput, params: KapaiArbParams): boolean {
-  if (input.avgPrice < params.minMarketValue) return false;
-  if (input.avgPrice <= 0) return false;
-  if (input.price > input.avgPrice * params.discountThreshold) return false;
-  if (input.avgPrice - input.price < params.minProfit) return false;
+/**
+ * 雙軌套利判斷（基準來源由呼叫端決定）：
+ * 1. 必須是站內最低 —— 比站上現有 perfect 最低還便宜才算撿漏（解決「報貴的，站上明明有更便宜」）
+ * 2. 明顯低於行情基準（≤70% 且省 ≥100）
+ * 3. 基準 ≥ 下限（過濾低價值小卡）
+ */
+export function isDeal(input: DealInput, params: KapaiArbParams): boolean {
+  const { price, baseline, siteMin } = input;
+  if (baseline < params.minMarketValue) return false;
+  if (baseline <= 0) return false;
+  if (siteMin != null && price >= siteMin) return false; // 站上有更便宜或同價的 → 不是機會
+  if (price > baseline * params.discountThreshold) return false;
+  if (baseline - price < params.minProfit) return false;
   return true;
 }
 

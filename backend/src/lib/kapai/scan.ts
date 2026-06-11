@@ -1,6 +1,8 @@
+import { prisma } from '../prisma';
 import { fetchLatestProducts } from './scraper';
-import { isArbitrageVsKapai, KAPAI_PARAMS, buildCardKey } from './logic';
-import { fetchKapaiMarket } from './market';
+import { isDeal, KAPAI_PARAMS, buildCardKey } from './logic';
+import { fetchPerfectMarket } from './market';
+import { getRawPrice } from './huca-raw';
 
 export interface ScanHit {
   listingId: number;
@@ -9,8 +11,9 @@ export interface ScanHit {
   game: string;
   name: string;
   price: number;
-  avgPrice: number;
-  lowPrice: number;
+  baseline: number;
+  baselineSource: string; // 'Huca成交' | '站內中位'
+  siteMin: number | null;
   profit: number;
   discount: number;
   condition: string;
@@ -18,8 +21,16 @@ export interface ScanHit {
 
 const PKM_GAMES = new Set(['pkmtw', 'pkmjp', 'pkmen']);
 
+async function findHucaCardId(setCode: string, cardNumber: string): Promise<number | null> {
+  const num = parseInt(cardNumber, 10);
+  if (Number.isNaN(num)) return null;
+  const cards = await prisma.hucaCard.findMany({ where: { setCode }, select: { id: true, cardNumber: true } });
+  return cards.find((c) => parseInt(c.cardNumber, 10) === num)?.id ?? null;
+}
+
 /**
- * 即時掃描：抓卡拍拍最新商品，對「卡拍拍官方均價」嚴格比價，回當前套利機會。
+ * 即時掃描（雙軌規則，與 detector 一致）：
+ * 日英=Huca裸卡成交基準、繁中=站內perfect中位基準、共同=必須站內最低。
  * 純讀取 — 不建 alert、不推播。供後台檢視用。
  */
 export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[] }> {
@@ -29,16 +40,30 @@ export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[
   for (const p of cands) {
     const cardKey = buildCardKey(p.packId, p.packCardId);
     if (!cardKey) continue;
-    const m = await fetchKapaiMarket(p.game, p.productKey, p.packId, p.packCardId, p.rare);
-    if (!m) continue;
     const price = parseInt(p.price, 10);
     if (Number.isNaN(price)) continue;
-    if (isArbitrageVsKapai({ price, avgPrice: m.avgPrice }, KAPAI_PARAMS)) {
+
+    const market = await fetchPerfectMarket(p.game, p.packId, p.packCardId, p.id);
+
+    let baseline: number | null = null;
+    let baselineSource = '';
+    if (p.game === 'pkmjp' || p.game === 'pkmen') {
+      const hucaId = await findHucaCardId(p.packId, p.packCardId);
+      if (hucaId) {
+        const raw = await getRawPrice(hucaId);
+        if (raw) { baseline = raw.rawPriceTwd; baselineSource = 'Huca成交'; }
+      }
+    } else if (market && market.count >= KAPAI_PARAMS.minSamples) {
+      baseline = market.median;
+      baselineSource = '站內中位';
+    }
+
+    if (baseline != null && isDeal({ price, baseline, siteMin: market?.siteMin ?? null }, KAPAI_PARAMS)) {
       hits.push({
         listingId: p.id, sellerId: p.sellerId, cardKey, game: p.game,
         name: p.productKey, price,
-        avgPrice: m.avgPrice, lowPrice: m.lowPrice,
-        profit: m.avgPrice - price, discount: price / m.avgPrice, condition: p.condition,
+        baseline, baselineSource, siteMin: market?.siteMin ?? null,
+        profit: baseline - price, discount: price / baseline, condition: p.condition,
       });
     }
   }
