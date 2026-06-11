@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../../api/client';
 
 interface Hit {
-  listingId: number; cardKey: string; game: string; name: string; price: number;
+  listingId: number; sellerId: number; cardKey: string; game: string; name: string; price: number;
   hucaLow: number; offerCount: number; profit: number; discount: number; condition: string;
 }
 
@@ -73,7 +73,7 @@ export default function AdminKapai() {
               <td style={cell}>{h.offerCount}</td>
               <td style={{ ...cell, color: '#F87171', fontWeight: 700 }}>NT${h.profit.toLocaleString()}</td>
               <td style={cell}>{Math.round(h.discount * 100)}%</td>
-              <td style={cell}><a href={`https://trade.kapaipai.tw/product/${h.listingId}`} target="_blank" rel="noreferrer" style={{ color: '#60A5FA' }}>↗</a></td>
+              <td style={cell}><a href={`https://trade.kapaipai.tw/shop/${h.sellerId}/${h.listingId}`} target="_blank" rel="noreferrer" style={{ color: '#60A5FA' }}>↗</a></td>
             </tr>
           ))}</tbody>
         </table>
