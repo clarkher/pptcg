@@ -9,10 +9,14 @@ import {
   getLogisticsConfig, buildStoreMapParams,
   createLogisticsOrder, type ShippingType,
 } from '../lib/ecpay-logistics';
-import { decrementStock } from '../lib/inventory';
+import {
+  reserveStock, releaseStock, releaseExpiredReservations, ReservationError,
+} from '../lib/reservation';
 
 const BACKEND_URL = () => process.env.BACKEND_URL!;
 const FRONTEND_URL = () => process.env.FRONTEND_URL!;
+
+const RESERVE_HOLD_MS = 30 * 60 * 1000; // 信用卡/取號前的初始預留窗口
 
 // ─── POST /api/checkout ──────────────────────────────────────
 // body: { paymentMethod: 'credit' | 'cvs', receiverName, receiverPhone }
@@ -23,46 +27,66 @@ export async function createCheckout(req: AuthRequest, res: Response) {
     return;
   }
 
-  const cartItems = await prisma.cartItem.findMany({
-    where: { userId: req.userId! },
-    include: { listing: true },
-  });
-  if (cartItems.length === 0) {
-    res.status(400).json({ error: '購物車是空的' });
-    return;
-  }
+  // 先回收逾時預留（防呆，setInterval 之外多一道）
+  await releaseExpiredReservations().catch(() => {});
 
-  const inactive = cartItems.filter(ci => ci.listing.status !== 'active');
-  if (inactive.length > 0) {
-    res.status(400).json({
-      error: `部分商品已售出：${inactive.map(ci => ci.listing.cardName).join('、')}`,
-    });
-    return;
-  }
-
-  const total = cartItems.reduce((sum, ci) => sum + ci.listing.price * ci.quantity, 0);
   const merchantTradeNo = generateMerchantTradeNo();
 
-  const order = await prisma.order.create({
-    data: {
-      merchantTradeNo,
-      buyerId: req.userId!,
-      total,
-      paymentMethod,
-      receiverName: receiverName || null,
-      receiverPhone: receiverPhone || null,
-      items: {
-        create: cartItems.map(ci => ({
-          listingId: ci.listingId,
-          quantity: ci.quantity,
-          price: ci.listing.price,
-        })),
-      },
-    },
-  });
+  let order;
+  let cardNames: string[];
+  try {
+    // 單一 transaction：讀車 → 條件式扣量預留 → 建單 → 清車（避免重複預留 / 孤兒單）
+    const result = await prisma.$transaction(async (tx) => {
+      const cartItems = await tx.cartItem.findMany({
+        where: { userId: req.userId! },
+        include: { listing: true },
+      });
+      if (cartItems.length === 0) {
+        throw new ReservationError([]); // 以空陣列代表空購物車
+      }
 
+      await reserveStock(tx, cartItems.map(ci => ({ listingId: ci.listingId, quantity: ci.quantity })));
+
+      const total = cartItems.reduce((sum, ci) => sum + ci.listing.price * ci.quantity, 0);
+      const created = await tx.order.create({
+        data: {
+          merchantTradeNo,
+          buyerId: req.userId!,
+          total,
+          paymentMethod,
+          reservationExpiresAt: new Date(Date.now() + RESERVE_HOLD_MS),
+          receiverName: receiverName || null,
+          receiverPhone: receiverPhone || null,
+          items: {
+            create: cartItems.map(ci => ({
+              listingId: ci.listingId,
+              quantity: ci.quantity,
+              price: ci.listing.price,
+            })),
+          },
+        },
+      });
+
+      await tx.cartItem.deleteMany({ where: { userId: req.userId! } });
+      return { created, cardNames: cartItems.map(ci => ci.listing.cardName) };
+    });
+    order = result.created;
+    cardNames = result.cardNames;
+  } catch (err) {
+    if (err instanceof ReservationError) {
+      res.status(400).json({
+        error: err.items.length === 0
+          ? '購物車是空的'
+          : `以下商品庫存不足或已售出：${err.items.join('、')}`,
+      });
+      return;
+    }
+    throw err;
+  }
+
+  const total = order.total;
   const config = getPaymentConfig();
-  const itemName = cartItems.map(ci => ci.listing.cardName).join('#').slice(0, 400);
+  const itemName = cardNames.join('#').slice(0, 400);
   const choosePayment = paymentMethod === 'credit' ? 'Credit' : 'CVS';
 
   const ecpayParams = buildAioParams({
@@ -160,27 +184,45 @@ export async function confirmStore(req: AuthRequest, res: Response) {
   const merchantTradeNo = generateMerchantTradeNo();
   const itemName = snapshot.map((ci: any) => ci.listing.cardName).join('#').slice(0, 50);
 
-  const order = await prisma.order.create({
-    data: {
-      merchantTradeNo,
-      buyerId: req.userId!,
-      total,
-      paymentMethod: 'cvs_cod',
-      shippingType: pending.shippingType,
-      storeId: pending.storeId,
-      storeName: pending.storeName || null,
-      receiverName: pending.receiverName,
-      receiverPhone: pending.receiverPhone,
-      items: {
-        create: snapshot.map((ci: any) => ({
-          listingId: ci.listingId,
-          quantity: ci.quantity,
-          price: ci.listing.price,
-        })),
-      },
-    },
-  });
+  // 1) transaction：對「目前」庫存條件式扣量預留 → 建單 → 清車（pending 留到物流成功才刪）
+  let order;
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      await reserveStock(tx, snapshot.map((ci: any) => ({ listingId: ci.listingId, quantity: ci.quantity })));
+      const created = await tx.order.create({
+        data: {
+          merchantTradeNo,
+          buyerId: req.userId!,
+          total,
+          paymentMethod: 'cvs_cod',
+          // 物流建單前的 crash safety net；建單成功會轉成 'paid'（不再被 sweep）
+          reservationExpiresAt: new Date(Date.now() + RESERVE_HOLD_MS),
+          shippingType: pending.shippingType,
+          storeId: pending.storeId,
+          storeName: pending.storeName || null,
+          receiverName: pending.receiverName,
+          receiverPhone: pending.receiverPhone,
+          items: {
+            create: snapshot.map((ci: any) => ({
+              listingId: ci.listingId,
+              quantity: ci.quantity,
+              price: ci.listing.price,
+            })),
+          },
+        },
+      });
+      await tx.cartItem.deleteMany({ where: { userId: req.userId! } });
+      return created;
+    });
+  } catch (err) {
+    if (err instanceof ReservationError) {
+      res.status(400).json({ error: `以下商品庫存不足或已售出：${err.items.join('、')}` });
+      return;
+    }
+    throw err;
+  }
 
+  // 2) 外部物流建單（不在 DB transaction 內）
   const logConfig = getLogisticsConfig();
   try {
     const logResult = await createLogisticsOrder({
@@ -196,28 +238,35 @@ export async function confirmStore(req: AuthRequest, res: Response) {
       serverReplyUrl: `${BACKEND_URL()}/api/ecpay/logistics-callback`,
     }, logConfig);
 
-    await prisma.order.update({
-      where: { id: order.id },
+    // 條件式 finalize：只有訂單仍是 pending_payment（沒被 sweep 釋放）才轉 paid
+    const upd = await prisma.order.updateMany({
+      where: { id: order.id, status: 'pending_payment' },
       data: {
         logisticsId: logResult.allPayLogisticsId,
         bookingNote: logResult.bookingNote,
         status: 'paid',            // COD 視為「待出貨」
         paymentStatus: 'pending',  // 實際付款在取貨時
+        reservationExpiresAt: null,
       },
     });
+    if (upd.count === 0) {
+      res.status(409).json({ error: '訂單已逾時釋放，請重新結帳' });
+      return;
+    }
+    await prisma.pendingCheckout.delete({ where: { id: pendingId } }).catch(() => {});
+    res.json({ orderId: order.id, merchantTradeNo });
   } catch (err: any) {
     console.error('Logistics order creation failed:', err.message);
+    // 回滾：釋放庫存、訂單作廢、刪除 pending
+    await prisma.$transaction(async (tx) => {
+      const o = await tx.order.findUnique({ where: { id: order!.id }, include: { items: true } });
+      const flipped = await tx.order.updateMany({
+        where: { id: order!.id, status: 'pending_payment' },
+        data: { status: 'cancelled', paymentStatus: 'failed', refundNote: '物流建單失敗', reservationExpiresAt: null },
+      });
+      if (flipped.count > 0 && o) await releaseStock(tx, o.items);
+    });
+    await prisma.pendingCheckout.delete({ where: { id: pendingId } }).catch(() => {});
+    res.status(502).json({ error: '物流建單失敗，庫存已釋放，請稍後再試' });
   }
-
-  await prisma.cartItem.deleteMany({ where: { userId: req.userId! } });
-  // 依購買數量扣庫存（剩餘 <= 0 才標 sold），而非整筆 listing 標 sold
-  for (const ci of snapshot) {
-    const l = await prisma.listing.findUnique({ where: { id: ci.listingId }, select: { quantity: true } });
-    if (!l) continue;
-    const next = decrementStock(l.quantity, ci.quantity);
-    await prisma.listing.update({ where: { id: ci.listingId }, data: { quantity: next.quantity, status: next.status } });
-  }
-  await prisma.pendingCheckout.delete({ where: { id: pendingId } });
-
-  res.json({ orderId: order.id, merchantTradeNo });
 }

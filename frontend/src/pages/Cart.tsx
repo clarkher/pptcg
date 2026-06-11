@@ -16,8 +16,16 @@ export function Cart() {
     fetch();
   }, [user]);
 
-  const total = items.reduce((sum, i) => sum + i.listing.price * i.quantity, 0);
-  const hasInactive = items.some(i => i.listing.status !== 'active');
+  // 'sold' = 已售出/無庫存；'over' = 庫存被調少、購物車數量超過剩餘
+  const issueOf = (i: typeof items[number]): 'sold' | 'over' | null => {
+    const avail = i.listing.quantity;
+    if (i.listing.status !== 'active' || avail <= 0) return 'sold';
+    if (i.quantity > avail) return 'over';
+    return null;
+  };
+  // 合計只計入可結帳的品項，避免誤導
+  const total = items.reduce((sum, i) => (issueOf(i) ? sum : sum + i.listing.price * i.quantity), 0);
+  const hasIssue = items.some(i => issueOf(i) !== null);
 
   if (loading && items.length === 0) return <div style={{ paddingTop: 80 }}><LoadingSpinner /></div>;
 
@@ -42,13 +50,14 @@ export function Cart() {
         ) : (
           <>
             {items.map(item => {
-              const inactive = item.listing.status !== 'active';
+              const issue = issueOf(item);
+              const inactive = issue === 'sold';
               return (
                 <div key={item.id} style={{
                   display: 'flex', gap: 12, alignItems: 'center',
                   background: 'rgba(255,255,255,0.04)', borderRadius: 14,
                   padding: '12px 14px', marginBottom: 10,
-                  border: '1px solid rgba(255,255,255,0.07)',
+                  border: `1px solid ${issue ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.07)'}`,
                   opacity: inactive ? 0.5 : 1,
                 }}>
                   <img
@@ -62,13 +71,14 @@ export function Cart() {
                     </p>
                     <p style={{ color: '#64748B', fontSize: 12, marginBottom: 8 }}>
                       {item.listing.condition} · 單價 NT${item.listing.price.toLocaleString()}
-                      {inactive && <span style={{ color: '#EF4444', marginLeft: 6 }}>已售出</span>}
+                      {issue === 'sold' && <span style={{ color: '#EF4444', marginLeft: 6 }}>已售出</span>}
+                      {issue === 'over' && <span style={{ color: '#F59E0B', marginLeft: 6 }}>僅剩 {item.listing.quantity}，請調整</span>}
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <QtyStepper
                         size="sm"
                         value={item.quantity}
-                        max={Math.max(item.quantity, item.listing.quantity)}
+                        max={Math.max(1, item.listing.quantity)}
                         disabled={inactive}
                         onChange={(n) => setQuantity(item.listingId, n)}
                       />
@@ -98,17 +108,17 @@ export function Cart() {
                   NT${total.toLocaleString()}
                 </span>
               </div>
-              {hasInactive && (
-                <p style={{ color: '#F59E0B', fontSize: 12, marginBottom: 10 }}>部分商品已售出，請先移除再結帳</p>
+              {hasIssue && (
+                <p style={{ color: '#F59E0B', fontSize: 12, marginBottom: 10 }}>部分商品已售出或庫存不足，請調整數量或移除後再結帳</p>
               )}
               <button
                 onClick={() => navigate('/checkout')}
-                disabled={hasInactive}
+                disabled={hasIssue}
                 style={{
                   width: '100%', padding: '14px', borderRadius: 12,
-                  background: hasInactive ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg,#8B5CF6,#7C3AED)',
+                  background: hasIssue ? 'rgba(139,92,246,0.3)' : 'linear-gradient(135deg,#8B5CF6,#7C3AED)',
                   color: '#fff', fontWeight: 800, fontSize: 16,
-                  border: 'none', cursor: hasInactive ? 'not-allowed' : 'pointer',
+                  border: 'none', cursor: hasIssue ? 'not-allowed' : 'pointer',
                 }}
               >
                 前往結帳

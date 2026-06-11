@@ -1,26 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { verifyCheckMacValue, getPaymentConfig } from '../lib/ecpay';
-import { decrementStock } from '../lib/inventory';
-
-// 依購買數量扣庫存：剩餘 <= 0 才標 sold（取代「整筆標 sold」）
-async function decrementListings(
-  tx: { listing: { findUnique: Function; update: Function } },
-  items: { listingId: string; quantity: number }[],
-) {
-  for (const item of items) {
-    const l = await tx.listing.findUnique({
-      where: { id: item.listingId },
-      select: { quantity: true },
-    });
-    if (!l) continue;
-    const next = decrementStock(l.quantity, item.quantity);
-    await tx.listing.update({
-      where: { id: item.listingId },
-      data: { quantity: next.quantity, status: next.status },
-    });
-  }
-}
+import { releaseOrderReservation, parseEcpayExpireDate } from '../lib/reservation';
 
 const FRONTEND_URL = () => process.env.FRONTEND_URL!;
 
@@ -53,44 +34,33 @@ export async function paymentCallback(req: Request, res: Response) {
   }
 
   if (params.RtnCode === '1') {
-    // 付款成功
-    // 超商代碼付款：取號時(下方分支)已扣過庫存，這裡只標付款，不重複扣。
-    const alreadyDecremented = !!order.cvsPaymentCode;
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          paymentStatus: 'paid',
-          status: 'paid',
-          ecpayTradeNo: params.TradeNo ?? null,
-        },
-      });
-      if (!alreadyDecremented) await decrementListings(tx, order.items);
-      await tx.cartItem.deleteMany({ where: { userId: order.buyerId } });
-    });
-  } else if (['10100073', '10200047', '10200049', '2'].includes(params.RtnCode)) {
-    // 超商代碼：取號成功（尚未付款）
-    // 取號即鎖定庫存；綠界可能重送取號通知，用 cvsPaymentCode 做冪等避免重複扣。
-    const alreadyDecremented = !!order.cvsPaymentCode;
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          cvsPaymentCode: params.PaymentNo ?? params.CodeNo ?? params.TradeNo ?? null,
-          cvsExpireDate: params.ExpireDate ?? null,
-          status: 'pending_payment',
-          ecpayTradeNo: params.TradeNo ?? null,
-        },
-      });
-      if (!alreadyDecremented) await decrementListings(tx, order.items);
-      await tx.cartItem.deleteMany({ where: { userId: order.buyerId } });
-    });
-  } else {
-    // 付款失敗
+    // 付款成功 → 只 finalize（庫存已於結帳時預留，購物車已於結帳時清空）。
+    // 預留窗口 = 綠界付款期限，故不會在釋放後才收到成功，無需重新扣量。
     await prisma.order.update({
       where: { id: order.id },
-      data: { paymentStatus: 'failed', status: 'cancelled' },
+      data: {
+        paymentStatus: 'paid',
+        status: 'paid',
+        ecpayTradeNo: params.TradeNo ?? null,
+        reservationExpiresAt: null,
+      },
     });
+  } else if (['10100073', '10200047', '10200049', '2'].includes(params.RtnCode)) {
+    // 超商代碼：取號成功（尚未付款）→ 記代碼，並把預留延長為綠界實際 ExpireDate。
+    // 庫存已於結帳時預留，不再重複扣量、不清車。
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        cvsPaymentCode: params.PaymentNo ?? params.CodeNo ?? params.TradeNo ?? null,
+        cvsExpireDate: params.ExpireDate ?? null,
+        status: 'pending_payment',
+        ecpayTradeNo: params.TradeNo ?? null,
+        reservationExpiresAt: parseEcpayExpireDate(params.ExpireDate),
+      },
+    });
+  } else {
+    // 付款失敗 → 釋放預留庫存（競態安全，只釋放一次）
+    await releaseOrderReservation(order.id);
   }
 
   res.status(200).type('text/plain').send('1|OK');
