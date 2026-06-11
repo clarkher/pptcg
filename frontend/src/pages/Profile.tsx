@@ -255,9 +255,15 @@ export function Profile() {
   const { user, logout, refreshUser } = useAuthStore();
 
   useEffect(() => {
-    if (!user) { navigate('/login'); return; }
-    refreshUser();
-  }, [user, navigate, refreshUser]);
+    if (!user) navigate('/login');
+  }, [user, navigate]);
+
+  // 只在進頁時刷新一次：refreshUser 會以全新物件覆寫 user，
+  // 若把 user 放進依賴會無限重打 /auth/me（iOS 畫面卡死主因）
+  useEffect(() => {
+    if (user) refreshUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!user) return null;
 

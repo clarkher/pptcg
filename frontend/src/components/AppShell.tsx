@@ -57,10 +57,12 @@ export function AppShell({ children }: Props) {
   const cartCount = useCartStore(s => s.items.length);
   const fetchCart = useCartStore(s => s.fetch);
 
+  // 依賴 user.id 而非 user 物件：refreshUser 每次都換新物件參考，
+  // 用物件當依賴會在 user 刷新時重複抓購物車
   useEffect(() => {
     if (user) fetchCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user?.id]);
 
   const goTo = (path: string) => {
     if ((path === '/orders' || path === '/profile' || path === '/cart') && !user) {
