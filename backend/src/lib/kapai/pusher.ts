@@ -3,10 +3,10 @@ import { pushArbitrage } from './notifier';
 
 const TOP_N = 5;
 
-/** 台灣時間是否在推播時段（09:00–23:00）。 */
+/** 台灣時間是否在推播時段。只有凌晨 04:00–08:00 不推，其餘時段都推。 */
 export function inPushWindow(now = new Date()): boolean {
   const twHour = (now.getUTCHours() + 8) % 24; // 台灣 = UTC+8
-  return twHour >= 9 && twHour < 23;
+  return !(twHour >= 4 && twHour < 8);
 }
 
 /**
@@ -16,7 +16,7 @@ export function inPushWindow(now = new Date()): boolean {
  */
 export async function runPushBatch(): Promise<{ pushed: number }> {
   if (!inPushWindow()) {
-    console.log('[kapai] push batch skipped（非 09:00-23:00 時段）');
+    console.log('[kapai] push batch skipped（凌晨 04:00-08:00 不推）');
     return { pushed: 0 };
   }
   const alerts = await prisma.arbitrageAlert.findMany({
