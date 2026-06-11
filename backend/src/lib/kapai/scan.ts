@@ -1,7 +1,6 @@
-import { prisma } from '../prisma';
 import { fetchLatestProducts } from './scraper';
-import { isArbitrageVsRaw, RAW_PARAMS, buildCardKey } from './logic';
-import { getRawPrice } from './huca-raw';
+import { isArbitrageVsKapai, KAPAI_PARAMS, buildCardKey } from './logic';
+import { fetchKapaiMarket } from './market';
 
 export interface ScanHit {
   listingId: number;
@@ -10,51 +9,39 @@ export interface ScanHit {
   game: string;
   name: string;
   price: number;
-  rawPriceTwd: number;
-  rawSamples: number;
+  marketMedian: number;
+  sampleCount: number;
   profit: number;
   discount: number;
   condition: string;
 }
 
+const PKM_GAMES = new Set(['pkmtw', 'pkmjp', 'pkmen']);
+
 /**
- * 即時掃描：抓卡拍拍最新商品，對「純裸卡市價」嚴格比價，回當前套利機會。
+ * 即時掃描：抓卡拍拍最新商品，對「台灣站內行情」嚴格比價，回當前套利機會。
  * 純讀取 — 不建 alert、不推播。供後台檢視用。
  */
 export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[] }> {
   const products = await fetchLatestProducts();
-  const jpen = products.filter(
-    (p) => (p.game === 'pkmjp' || p.game === 'pkmen') && p.condition === 'perfect'
-  );
+  const cands = products.filter((p) => PKM_GAMES.has(p.game) && p.condition === 'perfect');
   const hits: ScanHit[] = [];
-  for (const p of jpen) {
+  for (const p of cands) {
     const cardKey = buildCardKey(p.packId, p.packCardId);
     if (!cardKey) continue;
-    const num = parseInt(p.packCardId, 10);
-    if (Number.isNaN(num)) continue;
-    const cards = await prisma.hucaCard.findMany({
-      where: { setCode: p.packId },
-      select: { id: true, cardNumber: true, nameZh: true },
-    });
-    const m = cards.find((c) => parseInt(c.cardNumber, 10) === num);
+    const m = await fetchKapaiMarket(p.game, p.packId, p.packCardId, KAPAI_PARAMS.minSamples);
     if (!m) continue;
-    const raw = await getRawPrice(m.id);
-    if (!raw) continue;
     const price = parseInt(p.price, 10);
-    if (
-      isArbitrageVsRaw(
-        { price, condition: p.condition, game: p.game, rawPriceTwd: raw.rawPriceTwd, rawSampleCount: raw.sampleCount },
-        RAW_PARAMS
-      )
-    ) {
+    if (Number.isNaN(price)) continue;
+    if (isArbitrageVsKapai({ price, marketMedian: m.median, sampleCount: m.sampleCount }, KAPAI_PARAMS)) {
       hits.push({
         listingId: p.id, sellerId: p.sellerId, cardKey, game: p.game,
-        name: m.nameZh ?? p.productKey, price,
-        rawPriceTwd: raw.rawPriceTwd, rawSamples: raw.sampleCount,
-        profit: raw.rawPriceTwd - price, discount: price / raw.rawPriceTwd, condition: p.condition,
+        name: p.productKey, price,
+        marketMedian: m.median, sampleCount: m.sampleCount,
+        profit: m.median - price, discount: price / m.median, condition: p.condition,
       });
     }
   }
   hits.sort((a, b) => b.profit - a.profit);
-  return { scanned: jpen.length, hits };
+  return { scanned: cands.length, hits };
 }
