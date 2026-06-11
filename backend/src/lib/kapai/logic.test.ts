@@ -62,12 +62,11 @@ describe('isArbitrageVsRaw（對純裸卡市價比價）', () => {
   it('價差不足回 false', () => expect(isArbitrageVsRaw({ ...ok, price: 950, rawPriceTwd: 1000 }, p)).toBe(false));
 });
 
-describe('isArbitrageVsKapai（對卡拍拍台灣站內行情）', () => {
-  const p = KAPAI_PARAMS; // 0.7 / 100 / 賣家5 / 行情下限300
-  const ok = { price: 500, marketMedian: 1000, sampleCount: 8 };
+describe('isArbitrageVsKapai（對卡拍拍官方均價）', () => {
+  const p = KAPAI_PARAMS; // 0.7 / 100 / 行情下限300
+  const ok = { price: 500, avgPrice: 1000 };
   it('命中回 true', () => expect(isArbitrageVsKapai(ok, p)).toBe(true));
-  it('賣家數不足回 false', () => expect(isArbitrageVsKapai({ ...ok, sampleCount: 4 }, p)).toBe(false));
-  it('行情低於下限(聖灰$10/DIY)回 false', () => expect(isArbitrageVsKapai({ price: 10, marketMedian: 134, sampleCount: 50 }, p)).toBe(false));
+  it('均價低於下限(聖灰$10/反擊$200)回 false', () => expect(isArbitrageVsKapai({ price: 10, avgPrice: 200 }, p)).toBe(false));
   it('售價高於門檻回 false', () => expect(isArbitrageVsKapai({ ...ok, price: 800 }, p)).toBe(false));
-  it('價差不足回 false', () => expect(isArbitrageVsKapai({ price: 950, marketMedian: 1000, sampleCount: 8 }, p)).toBe(false));
+  it('價差不足回 false', () => expect(isArbitrageVsKapai({ price: 950, avgPrice: 1000 }, p)).toBe(false));
 });

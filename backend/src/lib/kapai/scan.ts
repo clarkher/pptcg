@@ -9,8 +9,8 @@ export interface ScanHit {
   game: string;
   name: string;
   price: number;
-  marketMedian: number;
-  sampleCount: number;
+  avgPrice: number;
+  lowPrice: number;
   profit: number;
   discount: number;
   condition: string;
@@ -19,7 +19,7 @@ export interface ScanHit {
 const PKM_GAMES = new Set(['pkmtw', 'pkmjp', 'pkmen']);
 
 /**
- * 即時掃描：抓卡拍拍最新商品，對「台灣站內行情」嚴格比價，回當前套利機會。
+ * 即時掃描：抓卡拍拍最新商品，對「卡拍拍官方均價」嚴格比價，回當前套利機會。
  * 純讀取 — 不建 alert、不推播。供後台檢視用。
  */
 export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[] }> {
@@ -29,16 +29,16 @@ export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[
   for (const p of cands) {
     const cardKey = buildCardKey(p.packId, p.packCardId);
     if (!cardKey) continue;
-    const m = await fetchKapaiMarket(p.game, p.packId, p.packCardId, KAPAI_PARAMS.minSamples);
+    const m = await fetchKapaiMarket(p.game, p.productKey, p.packId, p.packCardId, p.rare);
     if (!m) continue;
     const price = parseInt(p.price, 10);
     if (Number.isNaN(price)) continue;
-    if (isArbitrageVsKapai({ price, marketMedian: m.median, sampleCount: m.sampleCount }, KAPAI_PARAMS)) {
+    if (isArbitrageVsKapai({ price, avgPrice: m.avgPrice }, KAPAI_PARAMS)) {
       hits.push({
         listingId: p.id, sellerId: p.sellerId, cardKey, game: p.game,
         name: p.productKey, price,
-        marketMedian: m.median, sampleCount: m.sampleCount,
-        profit: m.median - price, discount: price / m.median, condition: p.condition,
+        avgPrice: m.avgPrice, lowPrice: m.lowPrice,
+        profit: m.avgPrice - price, discount: price / m.avgPrice, condition: p.condition,
       });
     }
   }

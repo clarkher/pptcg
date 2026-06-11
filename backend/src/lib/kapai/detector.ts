@@ -14,12 +14,12 @@ export async function detectAndAlert(): Promise<{ detected: number }> {
   let detected = 0;
   for (const l of pending) {
     if (PKM_GAMES.has(l.game) && l.condition === 'perfect') {
-      const m = await fetchKapaiMarket(l.game, l.setCode, l.cardNumber, KAPAI_PARAMS.minSamples);
-      if (m && isArbitrageVsKapai({ price: l.price, marketMedian: m.median, sampleCount: m.sampleCount }, KAPAI_PARAMS)) {
+      const m = await fetchKapaiMarket(l.game, l.name, l.setCode, l.cardNumber, l.rarity);
+      if (m && isArbitrageVsKapai({ price: l.price, avgPrice: m.avgPrice }, KAPAI_PARAMS)) {
         const existing = await prisma.arbitrageAlert.findUnique({ where: { listingId: l.id } });
         if (!existing) {
           detected++;
-          const baseline = m.median;
+          const baseline = m.avgPrice;
           await prisma.arbitrageAlert.create({
             data: {
               listingId: l.id, cardKey: l.cardKey, game: l.game,

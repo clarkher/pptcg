@@ -117,31 +117,27 @@ export function isArbitrageVsRaw(input: RawArbInput, params: RawArbParams): bool
 // ── 對卡拍拍站內「台灣行情」的比價（終極方案，取代 Huca/Snkrdunk）──
 
 export interface KapaiArbParams {
-  discountThreshold: number; // 售價 ≤ 台灣行情中位 × 此值
-  minProfit: number;         // 行情中位 − 售價 ≥ 此值
-  minSamples: number;        // 同卡 perfect 賣家數下限
-  minMarketValue: number;    // 行情下限（過濾低價值小卡，如聖灰$10/DIY$134）
+  discountThreshold: number; // 售價 ≤ 官方均價 × 此值
+  minProfit: number;         // 官方均價 − 售價 ≥ 此值
+  minMarketValue: number;    // 行情下限（過濾低價值小卡，如聖灰$10）
 }
 
 export const KAPAI_PARAMS: KapaiArbParams = {
   discountThreshold: 0.7,
   minProfit: 100,
-  minSamples: 5,
   minMarketValue: 300,
 };
 
 export interface KapaiArbInput {
   price: number;
-  marketMedian: number;
-  sampleCount: number;
+  avgPrice: number; // 卡拍拍官方站內均價
 }
 
 export function isArbitrageVsKapai(input: KapaiArbInput, params: KapaiArbParams): boolean {
-  if (input.sampleCount < params.minSamples) return false;
-  if (input.marketMedian < params.minMarketValue) return false;
-  if (input.marketMedian <= 0) return false;
-  if (input.price > input.marketMedian * params.discountThreshold) return false;
-  if (input.marketMedian - input.price < params.minProfit) return false;
+  if (input.avgPrice < params.minMarketValue) return false;
+  if (input.avgPrice <= 0) return false;
+  if (input.price > input.avgPrice * params.discountThreshold) return false;
+  if (input.avgPrice - input.price < params.minProfit) return false;
   return true;
 }
 
