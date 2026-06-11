@@ -5,6 +5,7 @@ import { isArbitrageVsHuca, HUCA_STRICT_PARAMS, buildCardKey } from './logic';
 export interface ScanHit {
   listingId: number;
   cardKey: string;
+  game: string;
   name: string;
   price: number;
   hucaLow: number;
@@ -44,7 +45,7 @@ export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[
     ) {
       const low = m.lowPriceTwd!;
       hits.push({
-        listingId: p.id, cardKey, name: m.nameZh ?? p.productKey, price,
+        listingId: p.id, cardKey, game: p.game, name: m.nameZh ?? p.productKey, price,
         hucaLow: low, offerCount: m.offerCount ?? 0,
         profit: low - price, discount: price / low, condition: p.condition,
       });

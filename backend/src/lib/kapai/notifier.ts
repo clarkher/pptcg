@@ -17,8 +17,10 @@ export async function pushArbitrage(listing: AlertListing, baselineMedian: numbe
     where: { lineUid: { not: null } },
     select: { lineUid: true },
   });
+  const langMap: Record<string, string> = { pkmjp: '日文', pkmen: '英文', pkmtw: '繁中' };
+  const lang = langMap[listing.game] ?? listing.game;
   const text =
-    `🚨 套利雷達\n\n${listing.name}\n套系：${listing.packName}\n番號：${listing.cardKey}｜品相：${listing.condition}\n\n` +
+    `🚨 套利雷達\n\n${listing.name}\n套系：${listing.packName}\n番號：${listing.cardKey}｜語言：${lang}｜品相：${listing.condition}\n\n` +
     `💰 售價 NT$${listing.price}（Huca 市價 NT$${baselineMedian}）\n📉 省 NT$${baselineMedian - listing.price}\n` +
     `賣家：${listing.sellerNickname}（${listing.sellerArea}）\n\n` +
     `https://trade.kapaipai.tw/product/${listing.id}`;
