@@ -250,6 +250,32 @@ function LineSubscribeCard({ lineBound, onBindSuccess }: { lineBound: boolean; o
 
 // ── Profile page ──────────────────────────────────────────────
 
+function TelegramCommunityCard() {
+  const [link, setLink] = useState<string | null>(null);
+  useEffect(() => {
+    api.get('/line/info').then(r => setLink(r.data.telegramGroupLink)).catch(() => {});
+  }, []);
+  if (!link) return null;
+  return (
+    <a href={link} target="_blank" rel="noreferrer" style={{
+      display: 'flex', alignItems: 'center', gap: 14, borderRadius: 20, padding: '18px 20px',
+      background: 'linear-gradient(135deg, rgba(34,158,217,0.18) 0%, rgba(6,10,30,0.85) 100%)',
+      border: '1px solid rgba(34,158,217,0.3)', textDecoration: 'none',
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 14, flexShrink: 0, display: 'flex',
+        alignItems: 'center', justifyContent: 'center', background: '#229ED9',
+        fontSize: 22, boxShadow: '0 0 16px rgba(34,158,217,0.35)',
+      }}>✈️</div>
+      <div style={{ flex: 1 }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: '#F1F5F9' }}>加入卡報報社群</p>
+        <p style={{ fontSize: 12, color: '#7FC9ED' }}>Telegram 群組 · 即時套利情報推播</p>
+      </div>
+      <span style={{ color: '#229ED9', fontSize: 18 }}>↗</span>
+    </a>
+  );
+}
+
 export function Profile() {
   const navigate = useNavigate();
   const { user, logout, refreshUser } = useAuthStore();
@@ -323,6 +349,9 @@ export function Profile() {
           lineBound={!!user.lineBound}
           onBindSuccess={refreshUser}
         />
+
+        {/* Telegram 社群 */}
+        <TelegramCommunityCard />
 
         {/* Menu */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

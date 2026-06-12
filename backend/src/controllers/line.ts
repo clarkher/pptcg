@@ -141,8 +141,11 @@ async function handleBindingCode(event: any, code: string, accessToken: string) 
 
 /** GET /api/line/info — public: return bot add link so the profile page can show it */
 export async function lineInfo(_req: Request, res: Response) {
-  const s = await prisma.setting.findUnique({ where: { key: 'LINE_BOT_LINK' } });
-  res.json({ botLink: s?.value ?? null });
+  const [line, tg] = await Promise.all([
+    prisma.setting.findUnique({ where: { key: 'LINE_BOT_LINK' } }),
+    prisma.setting.findUnique({ where: { key: 'TELEGRAM_GROUP_LINK' } }),
+  ]);
+  res.json({ botLink: line?.value ?? null, telegramGroupLink: tg?.value ?? null });
 }
 
 /** GET /api/line/status — authed: check binding */
