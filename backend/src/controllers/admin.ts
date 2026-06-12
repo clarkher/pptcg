@@ -368,7 +368,7 @@ export async function adminOrphanListings(_req: AuthRequest, res: Response) {
 // ── Settings (LINE credentials, etc.) ─────────────────────────
 
 // Sensitive keys whose values are masked in GET response
-const MASKED_KEYS = new Set(['LINE_CHANNEL_SECRET', 'LINE_CHANNEL_ACCESS_TOKEN']);
+const MASKED_KEYS = new Set(['LINE_CHANNEL_SECRET', 'LINE_CHANNEL_ACCESS_TOKEN', 'TELEGRAM_BOT_TOKEN']);
 
 export async function adminGetSettings(_req: AuthRequest, res: Response) {
   const settings = await prisma.setting.findMany({ orderBy: { key: 'asc' } });

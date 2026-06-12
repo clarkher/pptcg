@@ -19,6 +19,7 @@ const LINE_KEYS = [
   { key: 'LINE_CHANNEL_SECRET',       label: 'Channel Secret',       hint: '在 LINE Developers → Messaging API → Channel secret' },
   { key: 'LINE_CHANNEL_ACCESS_TOKEN', label: 'Channel Access Token', hint: '在 LINE Developers → Messaging API → Channel access token (long-lived)' },
   { key: 'LINE_BOT_LINK',             label: 'LINE 官方帳號連結',      hint: '讓用戶加入的 line.me/R/ti/p/@ 連結，用於前台綁定說明（選填）' },
+  { key: 'TELEGRAM_BOT_TOKEN',        label: 'Telegram Bot Token',   hint: '@BotFather 建 bot 拿的 token（免費、無推播配額）。填完按下方「連線 Telegram」' },
 ];
 
 export default function AdminLineSettings() {
@@ -75,6 +76,21 @@ export default function AdminLineSettings() {
     : 'https://pptcg-backend-staging-production.up.railway.app/api/line/webhook';
 
   const hasToken = !!settings['LINE_CHANNEL_ACCESS_TOKEN']?.hasValue;
+  const hasTgToken = !!settings['TELEGRAM_BOT_TOKEN']?.hasValue;
+  const [tgResult, setTgResult] = useState<{ ok?: boolean; chatName?: string; chatId?: number; error?: string } | null>(null);
+  const [tgBusy, setTgBusy] = useState(false);
+
+  async function connectTelegram() {
+    setTgBusy(true); setTgResult(null);
+    try {
+      const { data } = await api.post('/admin/telegram/setup');
+      setTgResult(data);
+    } catch (e: any) {
+      setTgResult({ error: e?.response?.data?.error ?? e?.message ?? '網路錯誤' });
+    } finally {
+      setTgBusy(false);
+    }
+  }
 
   return (
     <div style={{ maxWidth: 640, fontFamily: 'system-ui, sans-serif' }}>
@@ -186,6 +202,38 @@ export default function AdminLineSettings() {
             </div>
           );
         })}
+      </div>
+
+      {/* Telegram 連線 */}
+      <div style={{
+        marginTop: 24, background: 'rgba(34,158,217,0.08)', border: '1px solid rgba(34,158,217,0.25)',
+        borderRadius: 14, padding: '16px 18px',
+      }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: '#3BA9E0', marginBottom: 6 }}>✈️ Telegram 推播（免費、無配額）</p>
+        <p style={{ fontSize: 12, color: '#475569', marginBottom: 12 }}>
+          填好上方 Telegram Bot Token 並儲存後，在「已加入 bot 的群組」發一則訊息，再點下面按鈕自動抓 chat_id 並測試。
+        </p>
+        <button
+          onClick={connectTelegram}
+          disabled={tgBusy || !hasTgToken}
+          style={{
+            padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+            border: '1px solid rgba(34,158,217,0.4)',
+            background: hasTgToken ? 'rgba(34,158,217,0.15)' : 'rgba(255,255,255,0.04)',
+            color: hasTgToken ? '#3BA9E0' : '#334155',
+            cursor: hasTgToken ? 'pointer' : 'not-allowed', opacity: tgBusy ? 0.5 : 1,
+          }}
+        >
+          {tgBusy ? '連線中…' : '🔗 連線 Telegram（抓 chat_id + 測試）'}
+        </button>
+        {!hasTgToken && <span style={{ fontSize: 12, color: '#475569', marginLeft: 10 }}>（需先填入 Bot Token）</span>}
+        {tgResult && (
+          <div style={{ marginTop: 12, fontSize: 13 }}>
+            {tgResult.ok
+              ? <p style={{ color: '#4ADE80' }}>✅ 連線成功！已綁定「{tgResult.chatName || tgResult.chatId}」，測試訊息已送出，去 Telegram 看看。</p>
+              : <p style={{ color: '#F87171' }}>❌ {tgResult.error}</p>}
+          </div>
+        )}
       </div>
 
       {msg && <p style={{ marginTop: 16, fontSize: 13, color: '#4ADE80', fontWeight: 600 }}>{msg}</p>}

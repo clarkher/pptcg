@@ -14,7 +14,7 @@ import {
   listConditions, createCondition, updateCondition, deleteCondition,
   listSeriesDefs, createSeriesDef, updateSeriesDef, deleteSeriesDef,
 } from '../controllers/refdata';
-import { adminKapaiScan, adminHucaCards } from '../controllers/kapai-admin';
+import { adminKapaiScan, adminHucaCards, adminTelegramSetup } from '../controllers/kapai-admin';
 
 const router = Router();
 const guard = [authMiddleware, adminMiddleware];
@@ -62,5 +62,6 @@ router.post('/line/setup-webhook', ...guard, adminLineSetupWebhook);   // auto-c
 // 卡報報監控檢視
 router.get('/kapai/scan', ...guard, adminKapaiScan); // 立即掃描當前套利（不推不存）
 router.get('/huca', ...guard, adminHucaCards);        // Huca 行情純檢視
+router.post('/telegram/setup', ...guard, adminTelegramSetup); // 自動抓 chat_id + 測試
 
 export default router;
