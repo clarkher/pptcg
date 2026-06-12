@@ -3,9 +3,8 @@ import { buildCardKey } from './logic';
 
 const BASE = 'https://trade.kapaipai.tw/api';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
-// 放量：listProduct 翻頁無效但 pageSize 有效（最新優先）。三個寶可夢 game 各抓一批，合計約 1000。
-const PKM_GAMES = ['pkmtw', 'pkmjp', 'pkmen'] as const;
-const PAGE_SIZE = 350;
+// 放量：listProduct 翻頁無效但 pageSize 有效（最新優先）。各 game 抓量：繁中/日文各 1000、英文 350。
+const GAME_SIZE: Record<string, number> = { pkmtw: 1000, pkmjp: 1000, pkmen: 350 };
 
 interface RawProduct {
   id: number; game: string; productKey: string; price: string; stock: number;
@@ -15,8 +14,8 @@ interface RawProduct {
 
 export async function fetchLatestProducts(): Promise<RawProduct[]> {
   const all: RawProduct[] = [];
-  for (const game of PKM_GAMES) {
-    const res = await fetch(`${BASE}/product/listProduct?game=${game}&page=1&pageSize=${PAGE_SIZE}`, { headers: { 'User-Agent': UA } });
+  for (const [game, size] of Object.entries(GAME_SIZE)) {
+    const res = await fetch(`${BASE}/product/listProduct?game=${game}&page=1&pageSize=${size}`, { headers: { 'User-Agent': UA } });
     if (!res.ok) continue;
     const json: any = await res.json();
     all.push(...((json?.data?.products ?? []) as RawProduct[]));

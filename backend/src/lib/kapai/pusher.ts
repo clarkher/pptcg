@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { pushArbitrage } from './notifier';
+import { pushLine } from './notifier';
 
 const TOP_N = 5;
 
@@ -28,7 +28,7 @@ export async function runPushBatch(): Promise<{ pushed: number }> {
   for (const a of alerts) {
     const l = await prisma.kapaiListing.findUnique({ where: { id: a.listingId } });
     if (l) {
-      await pushArbitrage(l, a.baseline);
+      await pushLine(l, a.baseline);
       pushed++;
     }
     await prisma.arbitrageAlert.update({ where: { id: a.id }, data: { notified: true } });

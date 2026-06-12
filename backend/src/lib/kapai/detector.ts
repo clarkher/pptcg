@@ -2,6 +2,7 @@ import { prisma } from '../prisma';
 import { isDeal, KAPAI_PARAMS } from './logic';
 import { fetchPerfectMarket } from './market';
 import { getRawPrice } from './huca-raw';
+import { buildText, pushTelegram } from './notifier';
 
 const PKM_GAMES = new Set(['pkmtw', 'pkmjp', 'pkmen']);
 
@@ -55,6 +56,8 @@ export async function detectAndAlert(): Promise<{ detected: number }> {
               notified: false,
             },
           });
+          // Telegram：有變動即時全推（免費無配額）。LINE 仍由 pusher 批次處理。
+          await pushTelegram(buildText(l, baseline));
         }
       }
     }
