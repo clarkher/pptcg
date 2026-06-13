@@ -32,6 +32,10 @@ export async function register(req: Request, res: Response) {
     res.status(400).json({ error: '請填寫所有欄位' });
     return;
   }
+  if (String(password).length < 6) {
+    res.status(400).json({ error: '密碼至少需 6 個字元' });
+    return;
+  }
   const exists = await prisma.user.findFirst({ where: { OR: [{ email }, { username }] } });
   if (exists) {
     res.status(409).json({ error: 'Email 或帳號已存在' });
