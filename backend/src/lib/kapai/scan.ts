@@ -1,8 +1,9 @@
 import { prisma } from '../prisma';
 import { fetchLatestProducts } from './scraper';
-import { isDeal, KAPAI_PARAMS, buildCardKey } from './logic';
+import { isDeal, buildCardKey } from './logic';
 import { fetchPerfectMarket } from './market';
 import { getRawPrice } from './huca-raw';
+import { loadConfig } from './config';
 
 export interface ScanHit {
   listingId: number;
@@ -34,6 +35,7 @@ async function findHucaCardId(setCode: string, cardNumber: string): Promise<numb
  * 純讀取 — 不建 alert、不推播。供後台檢視用。
  */
 export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[] }> {
+  const { params } = await loadConfig();
   const products = await fetchLatestProducts();
   const cands = products.filter((p) => PKM_GAMES.has(p.game) && p.condition === 'perfect');
   const hits: ScanHit[] = [];
@@ -53,12 +55,12 @@ export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[
         const raw = await getRawPrice(hucaId);
         if (raw) { baseline = raw.rawPriceTwd; baselineSource = 'Huca成交'; }
       }
-    } else if (market && market.count >= KAPAI_PARAMS.minSamples) {
+    } else if (market && market.count >= params.minSamples) {
       baseline = market.median;
       baselineSource = '站內中位';
     }
 
-    if (baseline != null && isDeal({ price, baseline, siteMin: market?.siteMin ?? null }, KAPAI_PARAMS)) {
+    if (baseline != null && isDeal({ price, baseline, siteMin: market?.siteMin ?? null }, params)) {
       hits.push({
         listingId: p.id, sellerId: p.sellerId, cardKey, game: p.game,
         name: p.productKey, price,

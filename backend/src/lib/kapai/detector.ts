@@ -1,8 +1,9 @@
 import { prisma } from '../prisma';
-import { isDeal, KAPAI_PARAMS } from './logic';
+import { isDeal } from './logic';
 import { fetchPerfectMarket } from './market';
 import { getRawPrice } from './huca-raw';
 import { buildText, pushTelegram } from './notifier';
+import { loadConfig } from './config';
 
 const PKM_GAMES = new Set(['pkmtw', 'pkmjp', 'pkmen']);
 
@@ -22,6 +23,7 @@ async function findHucaCardId(setCode: string, cardNumber: string): Promise<numb
  * 只建 ArbitrageAlert（notified=false），推播交給 pusher 每30分批次。
  */
 export async function detectAndAlert(): Promise<{ detected: number }> {
+  const { params } = await loadConfig();
   const pending = await prisma.kapaiListing.findMany({ where: { processed: false } });
   let detected = 0;
   for (const l of pending) {
@@ -37,13 +39,13 @@ export async function detectAndAlert(): Promise<{ detected: number }> {
           const raw = await getRawPrice(hucaId);
           if (raw) baseline = raw.rawPriceTwd;
         }
-      } else if (market && market.count >= KAPAI_PARAMS.minSamples) {
+      } else if (market && market.count >= params.minSamples) {
         baseline = market.median;
       }
 
       if (
         baseline != null &&
-        isDeal({ price: l.price, baseline, siteMin: market?.siteMin ?? null }, KAPAI_PARAMS)
+        isDeal({ price: l.price, baseline, siteMin: market?.siteMin ?? null }, params)
       ) {
         const existing = await prisma.arbitrageAlert.findUnique({ where: { listingId: l.id } });
         if (!existing) {
