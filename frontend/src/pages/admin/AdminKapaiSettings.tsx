@@ -17,11 +17,16 @@ export default function AdminKapaiSettings() {
   const [env, setEnv] = useState('production');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  const [loadErr, setLoadErr] = useState('');
   const readOnly = env === 'staging';
 
-  useEffect(() => {
-    api.get('/admin/kapai/config').then(r => { setConfig(r.data.config); setEnv(r.data.env); }).catch(() => {});
-  }, []);
+  function load() {
+    setLoadErr('');
+    api.get('/admin/kapai/config')
+      .then(r => { setConfig(r.data.config); setEnv(r.data.env); })
+      .catch(e => setLoadErr(e?.response?.data?.error ?? e?.message ?? '載入失敗'));
+  }
+  useEffect(() => { load(); }, []);
 
   async function save() {
     if (!config) return;
@@ -50,7 +55,16 @@ export default function AdminKapaiSettings() {
   const setParam = (k: keyof KapaiConfig['params'], v: number) => config && setConfig({ ...config, params: { ...config.params, [k]: v } });
   const setPush = (k: keyof KapaiConfig['push'], v: number) => config && setConfig({ ...config, push: { ...config.push, [k]: v } });
 
-  if (!config) return <div style={{ color: '#64748B', fontFamily: 'system-ui' }}>載入中…</div>;
+  if (!config) return (
+    <div style={{ fontFamily: 'system-ui', color: '#64748B' }}>
+      {loadErr ? (
+        <div>
+          <p style={{ color: '#F87171', marginBottom: 12 }}>⚠️ 載入失敗：{loadErr}</p>
+          <button onClick={load} style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid rgba(124,58,237,0.4)', background: 'rgba(124,58,237,0.15)', color: '#C4B5FD', fontSize: 13, cursor: 'pointer' }}>重新載入</button>
+        </div>
+      ) : '載入中…'}
+    </div>
+  );
 
   const inputS: React.CSSProperties = {
     padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)',
