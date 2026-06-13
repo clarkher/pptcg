@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { ShoppingCart } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
+import { VerifyEmailBanner } from './VerifyEmailBanner';
 import brandLogo from '../assets/brand-logo.png';
 
 const NAV = [
@@ -262,6 +263,7 @@ export function AppShell({ children }: Props) {
       {/* ── Main content ─────────────── */}
       <main style={{ flex: 1, minWidth: 0, position: 'relative' }}>
         <NotificationBell />
+        <VerifyEmailBanner />
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           {children}
         </div>

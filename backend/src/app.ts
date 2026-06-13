@@ -17,6 +17,7 @@ import checkoutRoutes from './routes/checkout';
 import ecpayRoutes from './routes/ecpay';
 
 const app = express();
+app.set('trust proxy', 1);
 
 const STATIC_ORIGINS = [
   process.env.FRONTEND_URL || 'http://localhost:5173',

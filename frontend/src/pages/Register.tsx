@@ -11,12 +11,17 @@ export function Register() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    if (password !== confirmPassword) {
+      setError('兩次輸入的密碼不一致');
+      return;
+    }
     setLoading(true);
     try {
       await register(email, username, password);
@@ -32,6 +37,7 @@ export function Register() {
     { label: 'Email', type: 'email', value: email, set: setEmail, ph: 'your@email.com', min: undefined },
     { label: '帳號名稱', type: 'text', value: username, set: setUsername, ph: '你的暱稱', min: 2 },
     { label: '密碼', type: 'password', value: password, set: setPassword, ph: '至少 6 個字元', min: 6 },
+    { label: '確認密碼', type: 'password', value: confirmPassword, set: setConfirmPassword, ph: '再次輸入密碼', min: 6 },
   ] as const;
 
   return (
