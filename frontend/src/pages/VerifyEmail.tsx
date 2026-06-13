@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 
@@ -15,8 +15,13 @@ const card: React.CSSProperties = {
 export function VerifyEmail() {
   const [params] = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'ok' | 'fail'>('loading');
+  // 驗證 token 為單次使用：用 ref 確保只送出一次，避免 StrictMode 重複觸發 effect
+  // 第二次打已用掉的 token 而誤判為失敗。
+  const verified = useRef(false);
 
   useEffect(() => {
+    if (verified.current) return;
+    verified.current = true;
     const token = params.get('token');
     if (!token) { setStatus('fail'); return; }
     api.post('/auth/verify-email', { token })
