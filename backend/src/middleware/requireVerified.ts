@@ -4,6 +4,11 @@ import { AuthRequest } from './auth';
 
 // 必須接在 authMiddleware 之後（依賴 req.userId）
 export async function requireVerified(req: AuthRequest, res: Response, next: NextFunction) {
+  // 防呆：若未接 authMiddleware（req.userId 為 undefined），避免用 undefined 查 Prisma 而拋 500
+  if (!req.userId) {
+    res.status(401).json({ error: '未授權，請先登入' });
+    return;
+  }
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
     select: { emailVerified: true },
