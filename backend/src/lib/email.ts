@@ -38,6 +38,10 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
     console.log(`[email:fallback] to=${opts.to} subject="${opts.subject}"\n${opts.html}`);
     return true;
   }
+  // 有金鑰卻沒設寄件人：Resend 沙箱位址只能寄給帳號擁有者，寄給真實用戶會被靜默退回
+  if (!process.env.RESEND_FROM) {
+    console.warn('[email] RESEND_API_KEY 已設但缺 RESEND_FROM；用沙箱寄件人，寄給真實用戶會被 Resend 退回。請設定已驗證網域的寄件人。');
+  }
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
