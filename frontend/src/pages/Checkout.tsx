@@ -56,7 +56,11 @@ export function Checkout() {
       }
       // 頁面即將跳轉，不重置 submitting
     } catch (err: any) {
-      setError(err.response?.data?.error || '結帳失敗，請稍後再試');
+      if (err.response?.status === 403 && err.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+        setError('請先完成信箱驗證才能結帳——可在頁面頂部「重新寄送驗證信」。');
+      } else {
+        setError(err.response?.data?.error || '結帳失敗，請稍後再試');
+      }
       setSubmitting(false);
     }
   };

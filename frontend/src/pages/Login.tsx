@@ -133,6 +133,12 @@ export function Login() {
               />
             </div>
 
+            <div style={{ textAlign: 'right', marginTop: -6 }}>
+              <Link to="/forgot-password" style={{ fontSize: 12, color: '#64748B', textDecoration: 'none', fontWeight: 600 }}>
+                忘記密碼？
+              </Link>
+            </div>
+
             {/* Submit */}
             <button type="submit" disabled={loading} style={{
               width: '100%', padding: '15px', borderRadius: 16, border: 'none',

@@ -19,16 +19,53 @@ function median(a: number[]): number {
   return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
 }
 
+export interface PerfectListing { id: number; price: number; }
+
 export interface PerfectMarket {
   median: number;   // 同卡 perfect 賣價中位數
   siteMin: number;  // 站內現有 perfect 最低價（排除被評估的那筆本身）
   count: number;    // perfect 賣家筆數（排除自身）
 }
 
+// ── 同卡 perfect 列表 30 分快取（全量重偵測時同卡多 listing/跨輪共用一次 API）──
+const cache = new Map<string, { value: PerfectListing[]; at: number }>();
+const TTL_MS = 30 * 60 * 1000;
+
+export function clearMarketCache(): void { cache.clear(); }
+
 /**
- * 查某卡「站內 perfect 裸卡」行情（condition=perfect 伺服器過濾，純裸卡不混 PSA）。
- * excludeId：被評估的商品自身 id（避免它出現在列表裡影響 siteMin）。
- * 回 null 表非標準卡或站內沒有其他 perfect 在售。
+ * 抓某卡「站內 perfect 裸卡」在售列表（id+price），非標準卡回 null。
+ * 不含 excludeId 邏輯 → 可安全快取（同卡 30 分內共用）。
+ */
+export async function fetchPerfectListings(
+  game: string,
+  packId: string,
+  packCardId: string
+): Promise<PerfectListing[] | null> {
+  if (!isStandardCard(packId, packCardId)) return null;
+  const key = `${game}:${packId}:${packCardId}`;
+  const c = cache.get(key);
+  if (c && Date.now() - c.at < TTL_MS) return c.value;
+
+  const url =
+    `${BASE}/product/listProduct?game=${encodeURIComponent(game)}` +
+    `&packId=${encodeURIComponent(packId)}&packCardId=${encodeURIComponent(packCardId)}` +
+    `&condition=perfect&page=1&pageSize=50`;
+  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  if (!res.ok) return null; // 失敗不快取，下輪重試
+  const json: any = await res.json();
+  const products: any[] = json?.data?.products ?? [];
+  const value: PerfectListing[] = products
+    .filter((p) => p?.condition === 'perfect')
+    .map((p) => ({ id: p?.id, price: parseInt(p?.price, 10) }))
+    .filter((l) => !Number.isNaN(l.price) && l.price > 0);
+  cache.set(key, { value, at: Date.now() });
+  return value;
+}
+
+/**
+ * 查某卡 perfect 行情，排除被評估的那筆自身（excludeId）算 median/siteMin/count。
+ * 底層走 fetchPerfectListings 快取。回 null 表非標準卡或站內沒有其他 perfect 在售。
  */
 export async function fetchPerfectMarket(
   game: string,
@@ -36,19 +73,11 @@ export async function fetchPerfectMarket(
   packCardId: string,
   excludeId?: number
 ): Promise<PerfectMarket | null> {
-  if (!isStandardCard(packId, packCardId)) return null;
-  const url =
-    `${BASE}/product/listProduct?game=${encodeURIComponent(game)}` +
-    `&packId=${encodeURIComponent(packId)}&packCardId=${encodeURIComponent(packCardId)}` +
-    `&condition=perfect&page=1&pageSize=50`;
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
-  if (!res.ok) return null;
-  const json: any = await res.json();
-  const products: any[] = json?.data?.products ?? [];
-  const prices = products
-    .filter((p) => p?.condition === 'perfect' && p?.id !== excludeId) // 雙保險再過濾一次
-    .map((p) => parseInt(p?.price, 10))
-    .filter((p) => !Number.isNaN(p) && p > 0)
+  const listings = await fetchPerfectListings(game, packId, packCardId);
+  if (!listings) return null;
+  const prices = listings
+    .filter((l) => l.id !== excludeId)
+    .map((l) => l.price)
     .sort((a, b) => a - b);
   if (prices.length === 0) return null;
   return { median: median(prices), siteMin: prices[0], count: prices.length };

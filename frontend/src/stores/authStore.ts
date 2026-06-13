@@ -11,6 +11,9 @@ interface AuthState {
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
+  resendVerification: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -44,6 +47,15 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           // token expired, ignore
         }
+      },
+      forgotPassword: async (email) => {
+        await api.post('/auth/forgot-password', { email });
+      },
+      resetPassword: async (token, password) => {
+        await api.post('/auth/reset-password', { token, password });
+      },
+      resendVerification: async () => {
+        await api.post('/auth/resend-verification');
       },
     }),
     {

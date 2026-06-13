@@ -5,6 +5,7 @@ export interface User {
   avatar?: string;
   isAdmin?: boolean;
   lineBound?: boolean;
+  emailVerified?: boolean;
 }
 
 export interface Card {
