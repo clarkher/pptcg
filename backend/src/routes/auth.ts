@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import {
   register, login, googleLogin, me,
   verifyEmail, resendVerification,
+  forgotPassword, resetPassword,
 } from '../controllers/auth';
 import { authMiddleware } from '../middleware/auth';
 
@@ -19,6 +20,8 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/google', googleLogin);
 router.post('/verify-email', verifyEmail);
+router.post('/forgot-password', sensitiveLimiter, forgotPassword);
+router.post('/reset-password', resetPassword);
 router.post('/resend-verification', authMiddleware, sensitiveLimiter, resendVerification);
 router.get('/me', authMiddleware, me);
 export default router;

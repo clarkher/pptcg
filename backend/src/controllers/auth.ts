@@ -177,3 +177,49 @@ export async function resendVerification(req: AuthRequest, res: Response) {
   await issueAndSendVerification(user.id, user.email);
   res.json({ ok: true });
 }
+
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = req.body;
+  if (email) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, password: true },
+    });
+    if (canIssueReset(user) && user) {
+      await prisma.authToken.updateMany({
+        where: { userId: user.id, type: 'reset_password', usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      const { raw, tokenHash, expiresAt } = createTokenPair(RESET_TTL_MS);
+      await prisma.authToken.create({ data: { userId: user.id, type: 'reset_password', tokenHash, expiresAt } });
+      const link = buildAuthLink(FRONTEND(), '/reset-password', raw);
+      const sent = await sendEmail({ to: user.email, subject: '重設你的屁TCG密碼', html: resetPasswordEmailHtml(link) });
+      if (!sent) console.warn(`[auth] 重設信寄送失敗 userId=${user.id}`);
+    }
+  }
+  // 一律回 200，避免帳號列舉
+  res.json({ ok: true });
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const { token, password } = req.body;
+  if (!token || !password || String(password).length < 6) {
+    res.status(400).json({ error: '密碼至少需 6 個字元' });
+    return;
+  }
+  const record = await prisma.authToken.findUnique({ where: { tokenHash: hashToken(token) } });
+  if (!record || record.type !== 'reset_password' || !isTokenUsable(record)) {
+    res.status(400).json({ error: '重設連結無效或已過期' });
+    return;
+  }
+  const hashed = await bcrypt.hash(password, 10);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: record.userId }, data: { password: hashed, emailVerified: true } }),
+    prisma.authToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+    prisma.authToken.updateMany({
+      where: { userId: record.userId, type: 'reset_password', usedAt: null },
+      data: { usedAt: new Date() },
+    }),
+  ]);
+  res.json({ ok: true });
+}
