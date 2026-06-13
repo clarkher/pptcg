@@ -3,8 +3,8 @@ import { buildCardKey } from './logic';
 
 const BASE = 'https://trade.kapaipai.tw/api';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
-// 放量：listProduct 翻頁無效但 pageSize 有效（最新優先）。各 game 抓量：繁中/日文各 1000、英文 350。
-const GAME_SIZE: Record<string, number> = { pkmtw: 1000, pkmjp: 1000, pkmen: 350 };
+// 放量：listProduct 翻頁無效但 pageSize 有效（最新優先）。各 game 抓量：繁中/日文各 1500、英文 350。
+const GAME_SIZE: Record<string, number> = { pkmtw: 1500, pkmjp: 1500, pkmen: 350 };
 
 interface RawProduct {
   id: number; game: string; productKey: string; price: string; stock: number;
