@@ -25,6 +25,9 @@ import AdminKapai from './pages/admin/AdminKapai';
 import AdminHuca from './pages/admin/AdminHuca';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
+import { VerifyEmail } from './pages/VerifyEmail';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 
 function App() {
   return (
@@ -37,6 +40,9 @@ function App() {
           {/* Auth — no shell */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Admin login — separate from user login */}
           <Route path="/admin/login" element={<AdminLogin />} />
