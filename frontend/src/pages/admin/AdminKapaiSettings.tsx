@@ -73,6 +73,13 @@ export default function AdminKapaiSettings() {
   const num = (val: number, on: (v: number) => void, w = 80) => (
     <input type="number" value={val} disabled={readOnly} onChange={e => on(Number(e.target.value))} style={{ ...inputS, width: w }} />
   );
+  const pad = (h: number) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
+  const effectiveRange = (startHour: number): string => {
+    const hrs = [...config.scrapeWindows].map(w => w.startHour).sort((a, b) => a - b);
+    if (hrs.length === 1) return '全天';
+    const next = hrs[(hrs.indexOf(startHour) + 1) % hrs.length];
+    return `${pad(startHour)}–${pad(next)}`;
+  };
   const cell: React.CSSProperties = { padding: '8px 8px', fontSize: 13, color: '#CBD5E1' };
   const th: React.CSSProperties = { ...cell, color: '#64748B', fontWeight: 700, textAlign: 'left' };
   const sectionT: React.CSSProperties = { fontSize: 15, fontWeight: 800, color: '#E2E8F0', margin: '24px 0 10px' };
@@ -93,10 +100,11 @@ export default function AdminKapaiSettings() {
       <div style={sectionT}>① 分時段爬取量</div>
       <p style={{ fontSize: 12, color: '#475569', marginBottom: 8 }}>依台灣時間，每個時段各 game 爬幾筆最新商品。熱門時段（晚上）上架爆量可調高。</p>
       <table style={{ borderCollapse: 'collapse' }}>
-        <thead><tr><th style={th}>起始時(台灣)</th>{GAMES.map(g => <th key={g.key} style={th}>{g.label}</th>)}<th style={th}></th></tr></thead>
+        <thead><tr><th style={th}>起始時(台灣)</th><th style={th}>生效時段</th>{GAMES.map(g => <th key={g.key} style={th}>{g.label}</th>)}<th style={th}></th></tr></thead>
         <tbody>{config.scrapeWindows.map((w, i) => (
           <tr key={i}>
             <td style={cell}>{num(w.startHour, v => setWin(i, 'startHour', v), 64)} 點</td>
+            <td style={{ ...cell, color: '#7DD3FC', fontVariantNumeric: 'tabular-nums' }}>{effectiveRange(w.startHour)}</td>
             {GAMES.map(g => <td key={g.key} style={cell}>{num(w[g.key], v => setWin(i, g.key, v))}</td>)}
             <td style={cell}>
               <button onClick={() => delWin(i)} disabled={readOnly || config.scrapeWindows.length <= 1}
