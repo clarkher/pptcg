@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { isDeal } from './logic';
+import { isDeal, isHucaBaselineReliable } from './logic';
 import { fetchPerfectMarket } from './market';
 import { getRawPrice } from './huca-raw';
 import { buildText, pushTelegram } from './notifier';
@@ -27,8 +27,8 @@ async function findHucaCardId(setCode: string, cardNumber: string): Promise<numb
 async function evaluate(l: Listing, params: KapaiParams): Promise<boolean> {
   if (!PKM_GAMES.has(l.game) || l.condition !== 'perfect') return false;
 
-  // 站內 perfect 行情（排除這筆自身）—— siteMin 是共同硬條件
-  const market = await fetchPerfectMarket(l.game, l.setCode, l.cardNumber, l.id);
+  // 站內 perfect 行情（排除這筆自身、只比同稀有度）—— siteMin 是共同硬條件
+  const market = await fetchPerfectMarket(l.game, l.setCode, l.cardNumber, l.id, l.rarity);
 
   // 行情基準：日英走 Huca 成交、繁中走站內中位
   let baseline: number | null = null;
@@ -36,7 +36,10 @@ async function evaluate(l: Listing, params: KapaiParams): Promise<boolean> {
     const hucaId = await findHucaCardId(l.setCode, l.cardNumber);
     if (hucaId) {
       const raw = await getRawPrice(hucaId);
-      if (raw) baseline = raw.rawPriceTwd;
+      // 防呆：Huca 對齊不分稀有度，用站內同 rare 中位佐證（擋皮卡丘一般版被對到球閃版）
+      if (raw && isHucaBaselineReliable(raw.rawPriceTwd, market?.median ?? null, market?.count ?? 0, params.minSamples)) {
+        baseline = raw.rawPriceTwd;
+      }
     }
   } else if (market && market.count >= params.minSamples) {
     baseline = market.median;

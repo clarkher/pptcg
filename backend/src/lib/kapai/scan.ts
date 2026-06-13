@@ -1,6 +1,6 @@
 import { prisma } from '../prisma';
 import { fetchLatestProducts } from './scraper';
-import { isDeal, buildCardKey } from './logic';
+import { isDeal, isHucaBaselineReliable, buildCardKey } from './logic';
 import { fetchPerfectMarket } from './market';
 import { getRawPrice } from './huca-raw';
 import { loadConfig } from './config';
@@ -45,7 +45,7 @@ export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[
     const price = parseInt(p.price, 10);
     if (Number.isNaN(price)) continue;
 
-    const market = await fetchPerfectMarket(p.game, p.packId, p.packCardId, p.id);
+    const market = await fetchPerfectMarket(p.game, p.packId, p.packCardId, p.id, p.rare);
 
     let baseline: number | null = null;
     let baselineSource = '';
@@ -53,7 +53,10 @@ export async function scanArbitrage(): Promise<{ scanned: number; hits: ScanHit[
       const hucaId = await findHucaCardId(p.packId, p.packCardId);
       if (hucaId) {
         const raw = await getRawPrice(hucaId);
-        if (raw) { baseline = raw.rawPriceTwd; baselineSource = 'Huca成交'; }
+        // 防呆：Huca 對齊不分稀有度，用站內同 rare 中位佐證
+        if (raw && isHucaBaselineReliable(raw.rawPriceTwd, market?.median ?? null, market?.count ?? 0, params.minSamples)) {
+          baseline = raw.rawPriceTwd; baselineSource = 'Huca成交';
+        }
       }
     } else if (market && market.count >= params.minSamples) {
       baseline = market.median;
