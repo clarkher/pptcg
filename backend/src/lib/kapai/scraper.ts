@@ -44,7 +44,8 @@ export async function ingestLatest(): Promise<{ scraped: number; saved: number; 
     };
     await prisma.kapaiListing.upsert({
       where: { id: p.id },
-      update: { price: base.price, stock: base.stock },
+      // processed:false → 全量重偵測：既有卡每輪重新進入比價（行情變動造成的撿漏也抓得到）
+      update: { price: base.price, stock: base.stock, processed: false },
       create: { id: p.id, ...base, processed: false },
     });
     saved++;
