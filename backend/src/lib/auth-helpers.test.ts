@@ -37,6 +37,9 @@ describe('isTokenUsable', () => {
   it('已過期 → false', () => {
     expect(isTokenUsable({ usedAt: null, expiresAt: new Date(now.getTime() - 1000) }, now)).toBe(false);
   });
+  it('剛好到期(expiresAt === now) → false（嚴格大於，防 >= 回歸）', () => {
+    expect(isTokenUsable({ usedAt: null, expiresAt: now }, now)).toBe(false);
+  });
 });
 
 describe('buildAuthLink', () => {
