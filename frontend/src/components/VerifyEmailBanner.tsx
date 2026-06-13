@@ -6,8 +6,9 @@ export function VerifyEmailBanner() {
   const [sent, setSent] = useState(false);
   const [cooldown, setCooldown] = useState(false);
 
-  // 已登入且尚未驗證才顯示（Google 用戶 emailVerified=true 不顯示）
-  if (!user || user.emailVerified) return null;
+  // 只在「明確未驗證」時顯示：emailVerified===false 才秀 banner。
+  // undefined（舊的 localStorage 快取、尚未被 /auth/me 更新）視為未知，不顯示，避免誤擾已驗證用戶。
+  if (!user || user.emailVerified !== false) return null;
 
   const resend = async () => {
     if (cooldown) return;
