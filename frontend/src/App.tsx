@@ -22,6 +22,7 @@ import { AdminRefData } from './pages/admin/AdminRefData';
 import { AdminWishlist } from './pages/admin/AdminWishlist';
 import AdminLineSettings from './pages/admin/AdminLineSettings';
 import AdminKapai from './pages/admin/AdminKapai';
+import AdminKapaiSettings from './pages/admin/AdminKapaiSettings';
 import AdminHuca from './pages/admin/AdminHuca';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
@@ -50,6 +51,7 @@ function App() {
             <Route path="orders" element={<AdminOrders />} />
             <Route path="refdata" element={<AdminRefData />} />
             <Route path="kapai" element={<AdminKapai />} />
+            <Route path="kapai-settings" element={<AdminKapaiSettings />} />
             <Route path="huca" element={<AdminHuca />} />
             <Route path="line-settings" element={<AdminLineSettings />} />
           </Route>

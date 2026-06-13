@@ -1,10 +1,10 @@
 import { prisma } from '../prisma';
 import { buildCardKey } from './logic';
+import { loadConfig, pickScrapeWindow, getTaiwanHour } from './config';
 
 const BASE = 'https://trade.kapaipai.tw/api';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
-// 放量：listProduct 翻頁無效但 pageSize 有效（最新優先）。各 game 抓量：繁中/日文各 1500、英文 350。
-const GAME_SIZE: Record<string, number> = { pkmtw: 1500, pkmjp: 1500, pkmen: 350 };
+// 各 game 抓量改由後台 config 分時段定義（listProduct 翻頁無效但 pageSize 有效、最新優先）。
 
 interface RawProduct {
   id: number; game: string; productKey: string; price: string; stock: number;
@@ -13,8 +13,11 @@ interface RawProduct {
 }
 
 export async function fetchLatestProducts(): Promise<RawProduct[]> {
+  const { scrapeWindows } = await loadConfig();
+  const w = pickScrapeWindow(scrapeWindows, getTaiwanHour());
+  const sizes: Record<string, number> = { pkmtw: w.pkmtw, pkmjp: w.pkmjp, pkmen: w.pkmen };
   const all: RawProduct[] = [];
-  for (const [game, size] of Object.entries(GAME_SIZE)) {
+  for (const [game, size] of Object.entries(sizes)) {
     const res = await fetch(`${BASE}/product/listProduct?game=${game}&page=1&pageSize=${size}`, { headers: { 'User-Agent': UA } });
     if (!res.ok) continue;
     const json: any = await res.json();
