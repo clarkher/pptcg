@@ -4,8 +4,26 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
+import {
+  createTokenPair, hashToken, isTokenUsable, buildAuthLink, canIssueReset,
+  VERIFY_TTL_MS, RESET_TTL_MS,
+} from '../lib/auth-helpers';
+import { sendEmail, verificationEmailHtml, resetPasswordEmailHtml } from '../lib/email';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const FRONTEND = () => process.env.FRONTEND_URL || 'http://localhost:5173';
+
+async function issueAndSendVerification(userId: string, email: string) {
+  await prisma.authToken.updateMany({
+    where: { userId, type: 'verify_email', usedAt: null },
+    data: { usedAt: new Date() },
+  });
+  const { raw, tokenHash, expiresAt } = createTokenPair(VERIFY_TTL_MS);
+  await prisma.authToken.create({ data: { userId, type: 'verify_email', tokenHash, expiresAt } });
+  const link = buildAuthLink(FRONTEND(), '/verify-email', raw);
+  await sendEmail({ to: email, subject: '驗證你的屁TCG信箱', html: verificationEmailHtml(link) });
+}
 
 export async function register(req: Request, res: Response) {
   const { email, username, password } = req.body;
@@ -13,9 +31,7 @@ export async function register(req: Request, res: Response) {
     res.status(400).json({ error: '請填寫所有欄位' });
     return;
   }
-  const exists = await prisma.user.findFirst({
-    where: { OR: [{ email }, { username }] },
-  });
+  const exists = await prisma.user.findFirst({ where: { OR: [{ email }, { username }] } });
   if (exists) {
     res.status(409).json({ error: 'Email 或帳號已存在' });
     return;
@@ -23,8 +39,9 @@ export async function register(req: Request, res: Response) {
   const hashed = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: { email, username, password: hashed },
-    select: { id: true, email: true, username: true, isAdmin: true },
+    select: { id: true, email: true, username: true, isAdmin: true, emailVerified: true },
   });
+  await issueAndSendVerification(user.id, user.email);
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   res.json({ user, token });
 }
@@ -38,7 +55,7 @@ export async function login(req: Request, res: Response) {
   }
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   res.json({
-    user: { id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin },
+    user: { id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin, emailVerified: user.emailVerified },
     token,
   });
 }
@@ -86,6 +103,7 @@ export async function googleLogin(req: Request, res: Response) {
         username,
         googleId: payload.sub,
         avatar: payload.picture ?? null,
+        emailVerified: true,
       },
     });
   } else if (!user.googleId) {
@@ -94,13 +112,14 @@ export async function googleLogin(req: Request, res: Response) {
       data: {
         googleId: payload.sub,
         avatar: user.avatar ?? payload.picture ?? null,
+        emailVerified: true,
       },
     });
   }
 
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   res.json({
-    user: { id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin },
+    user: { id: user.id, email: user.email, username: user.username, isAdmin: user.isAdmin, emailVerified: user.emailVerified },
     token,
   });
 }
@@ -108,7 +127,7 @@ export async function googleLogin(req: Request, res: Response) {
 export async function me(req: AuthRequest, res: Response) {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
-    select: { id: true, email: true, username: true, avatar: true, isAdmin: true, lineUid: true },
+    select: { id: true, email: true, username: true, avatar: true, isAdmin: true, lineUid: true, emailVerified: true },
   });
   if (!user) {
     res.status(404).json({ error: '使用者不存在' });
@@ -116,4 +135,39 @@ export async function me(req: AuthRequest, res: Response) {
   }
   const { lineUid, ...rest } = user;
   res.json({ ...rest, lineBound: !!lineUid });
+}
+
+export async function verifyEmail(req: Request, res: Response) {
+  const { token } = req.body;
+  if (!token) {
+    res.status(400).json({ error: '缺少 token' });
+    return;
+  }
+  const record = await prisma.authToken.findUnique({ where: { tokenHash: hashToken(token) } });
+  if (!record || record.type !== 'verify_email' || !isTokenUsable(record)) {
+    res.status(400).json({ error: '驗證連結無效或已過期' });
+    return;
+  }
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: record.userId }, data: { emailVerified: true } }),
+    prisma.authToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+  ]);
+  res.json({ ok: true });
+}
+
+export async function resendVerification(req: AuthRequest, res: Response) {
+  const user = await prisma.user.findUnique({
+    where: { id: req.userId },
+    select: { id: true, email: true, emailVerified: true },
+  });
+  if (!user) {
+    res.status(404).json({ error: '使用者不存在' });
+    return;
+  }
+  if (user.emailVerified) {
+    res.json({ ok: true, alreadyVerified: true });
+    return;
+  }
+  await issueAndSendVerification(user.id, user.email);
+  res.json({ ok: true });
 }
