@@ -22,7 +22,8 @@ async function issueAndSendVerification(userId: string, email: string) {
   const { raw, tokenHash, expiresAt } = createTokenPair(VERIFY_TTL_MS);
   await prisma.authToken.create({ data: { userId, type: 'verify_email', tokenHash, expiresAt } });
   const link = buildAuthLink(FRONTEND(), '/verify-email', raw);
-  await sendEmail({ to: email, subject: '驗證你的屁TCG信箱', html: verificationEmailHtml(link) });
+  const sent = await sendEmail({ to: email, subject: '驗證你的屁TCG信箱', html: verificationEmailHtml(link) });
+  if (!sent) console.warn(`[auth] 驗證信寄送失敗 userId=${userId}`);
 }
 
 export async function register(req: Request, res: Response) {
@@ -41,7 +42,12 @@ export async function register(req: Request, res: Response) {
     data: { email, username, password: hashed },
     select: { id: true, email: true, username: true, isAdmin: true, emailVerified: true },
   });
-  await issueAndSendVerification(user.id, user.email);
+  // 寄驗證信為盡力而為：失敗不應讓註冊整個 500（使用者已建立，可登入後用 banner 重寄）
+  try {
+    await issueAndSendVerification(user.id, user.email);
+  } catch (e) {
+    console.warn(`[auth] 註冊後發驗證信流程失敗 userId=${user.id}`, e);
+  }
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
   res.json({ user, token });
 }

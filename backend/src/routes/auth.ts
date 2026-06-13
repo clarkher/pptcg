@@ -8,7 +8,7 @@ import { authMiddleware } from '../middleware/auth';
 
 const sensitiveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  limit: 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: '嘗試次數過多，請 15 分鐘後再試' },
