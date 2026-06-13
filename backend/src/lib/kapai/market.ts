@@ -19,7 +19,7 @@ function median(a: number[]): number {
   return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
 }
 
-export interface PerfectListing { id: number; price: number; }
+export interface PerfectListing { id: number; price: number; rare: string; }
 
 export interface PerfectMarket {
   median: number;   // 同卡 perfect 賣價中位數
@@ -57,7 +57,7 @@ export async function fetchPerfectListings(
   const products: any[] = json?.data?.products ?? [];
   const value: PerfectListing[] = products
     .filter((p) => p?.condition === 'perfect')
-    .map((p) => ({ id: p?.id, price: parseInt(p?.price, 10) }))
+    .map((p) => ({ id: p?.id, price: parseInt(p?.price, 10), rare: p?.rare ?? '' }))
     .filter((l) => !Number.isNaN(l.price) && l.price > 0);
   cache.set(key, { value, at: Date.now() });
   return value;
@@ -65,18 +65,21 @@ export async function fetchPerfectListings(
 
 /**
  * 查某卡 perfect 行情，排除被評估的那筆自身（excludeId）算 median/siteMin/count。
- * 底層走 fetchPerfectListings 快取。回 null 表非標準卡或站內沒有其他 perfect 在售。
+ * rare：只比同稀有度（同番號常混「一般版本」與「球閃」大師球版，價差數十倍，混算會誤判套利）。
+ * 底層走 fetchPerfectListings 快取。回 null 表非標準卡或站內沒有其他同稀有度 perfect 在售。
  */
 export async function fetchPerfectMarket(
   game: string,
   packId: string,
   packCardId: string,
-  excludeId?: number
+  excludeId?: number,
+  rare?: string
 ): Promise<PerfectMarket | null> {
   const listings = await fetchPerfectListings(game, packId, packCardId);
   if (!listings) return null;
   const prices = listings
     .filter((l) => l.id !== excludeId)
+    .filter((l) => rare == null || l.rare === rare) // 只比同稀有度
     .map((l) => l.price)
     .sort((a, b) => a - b);
   if (prices.length === 0) return null;

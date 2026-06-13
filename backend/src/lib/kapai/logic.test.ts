@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { median, buildCardKey, isArbitrage, matchesPreference, isArbitrageVsHuca, isArbitrageVsRaw, isDeal, HUCA_STRICT_PARAMS, RAW_PARAMS, KAPAI_PARAMS, DEFAULT_PARAMS } from './logic';
+import { median, buildCardKey, isArbitrage, matchesPreference, isArbitrageVsHuca, isArbitrageVsRaw, isDeal, isHucaBaselineReliable, HUCA_STRICT_PARAMS, RAW_PARAMS, KAPAI_PARAMS, DEFAULT_PARAMS } from './logic';
 
 describe('median', () => {
   it('空陣列回 0', () => expect(median([])).toBe(0));
@@ -72,4 +72,20 @@ describe('isDeal（雙軌套利：必須站內最低 + 明顯低於基準）', (
   it('基準低於下限(聖灰$10/反擊$200)回 false', () => expect(isDeal({ price: 10, baseline: 200, siteMin: null }, p)).toBe(false));
   it('售價高於基準門檻回 false', () => expect(isDeal({ ...ok, price: 800, siteMin: 900 }, p)).toBe(false));
   it('價差不足回 false', () => expect(isDeal({ price: 950, baseline: 1000, siteMin: 1100 }, p)).toBe(false));
+});
+
+describe('isHucaBaselineReliable（日英 Huca 基準防呆：站內同 rare 佐證）', () => {
+  const minSamples = 5;
+  it('SV2a-025 皮卡丘：Huca$789 遠高於站內同rare中位$75(21賣家) → 不可信（Huca 對到球閃版）', () =>
+    expect(isHucaBaselineReliable(789, 75, 21, minSamples)).toBe(false));
+  it('CP6-011 老卡噴：Huca$25095 ≈ 站內同rare中位$21000(3賣家樣本不足) → 可信(無佐證只能信Huca)', () =>
+    expect(isHucaBaselineReliable(25095, 21000, 3, minSamples)).toBe(true));
+  it('Huca 與站內同rare中位一致(<3倍) → 可信', () =>
+    expect(isHucaBaselineReliable(1100, 1000, 10, minSamples)).toBe(true));
+  it('站內同rare樣本足且 Huca 超過3倍 → 不可信', () =>
+    expect(isHucaBaselineReliable(3001, 1000, 10, minSamples)).toBe(false));
+  it('站內無同rare行情(null) → 無從佐證、只能信 Huca', () =>
+    expect(isHucaBaselineReliable(789, null, 0, minSamples)).toBe(true));
+  it('剛好3倍 → 仍可信(邊界)', () =>
+    expect(isHucaBaselineReliable(3000, 1000, 10, minSamples)).toBe(true));
 });

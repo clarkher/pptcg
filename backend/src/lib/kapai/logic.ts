@@ -152,6 +152,23 @@ export function isDeal(input: DealInput, params: KapaiArbParams): boolean {
   return true;
 }
 
+/**
+ * 日英 Huca 基準防呆：Huca 番號對齊不分稀有度，同番號「一般版本」可能被對到「球閃」大師球高價版
+ * （例：皮卡丘 SV2a-025 一般版站內中位 $75，但 Huca 對到球閃版 $789）。
+ * 用站內同 rare 中位佐證：站內同 rare 樣本足(≥minSamples)且 Huca 遠高於站內中位(>maxRatio 倍) →
+ * 代表 Huca 對齊到別的稀有度版本、不可信。樣本不足則無從佐證、只能信 Huca。
+ */
+export function isHucaBaselineReliable(
+  hucaBaseline: number,
+  siteMedianSameRare: number | null,
+  siteCountSameRare: number,
+  minSamples: number,
+  maxRatio = 3
+): boolean {
+  if (siteMedianSameRare == null || siteMedianSameRare <= 0 || siteCountSameRare < minSamples) return true;
+  return hucaBaseline <= siteMedianSameRare * maxRatio;
+}
+
 // ── 通知分流（結構預留，MVP notifier 先全推，之後接這個過濾）──
 
 export interface AlertForMatch {

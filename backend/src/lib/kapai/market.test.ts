@@ -59,4 +59,28 @@ describe('fetchPerfectMarket 用快取列表算行情', () => {
     await fetchPerfectMarket('pkmtw', 'M4', '114', 2);
     expect(f).toHaveBeenCalledTimes(1);
   });
+
+  it('帶 rare 時只比同稀有度（不混一般版本/球閃，修皮卡丘假訊號）', async () => {
+    // SV2a-025 皮卡丘：一般版本 $45/$60 + 球閃 $800/$1000 混在同番號
+    mockProducts([
+      { id: 1, condition: 'perfect', price: '45', rare: '一般版本' },
+      { id: 2, condition: 'perfect', price: '60', rare: '一般版本' },
+      { id: 3, condition: 'perfect', price: '800', rare: '球閃' },
+      { id: 4, condition: 'perfect', price: '1000', rare: '球閃' },
+    ]);
+    // 評估 $45 一般版本（排除自身）只能跟「一般版本」比，不能混球閃
+    const m = await fetchPerfectMarket('pkmjp', 'SV2a', '025', 1, '一般版本');
+    expect(m!.count).toBe(1);     // 只剩 $60 一般版本
+    expect(m!.siteMin).toBe(60);
+    expect(m!.median).toBe(60);   // 不會被球閃 $800/$1000 拉高
+  });
+
+  it('不帶 rare 時算全部（向後相容）', async () => {
+    mockProducts([
+      { id: 1, condition: 'perfect', price: '45', rare: '一般版本' },
+      { id: 2, condition: 'perfect', price: '800', rare: '球閃' },
+    ]);
+    const m = await fetchPerfectMarket('pkmjp', 'SV2a', '025', 99);
+    expect(m!.count).toBe(2);
+  });
 });
