@@ -51,6 +51,20 @@ export async function adminPutKapaiConfig(req: AuthRequest, res: Response) {
       res.status(400).json({ error: 'surge.discountThreshold 必須在 0–1 之間' }); return;
     }
   }
+  if (b.autotune) {
+    const at = b.autotune;
+    if (typeof at.enabled !== 'boolean') {
+      res.status(400).json({ error: 'autotune.enabled 必須是 true/false' }); return;
+    }
+    for (const k of ['lowThreshold', 'highThreshold'] as const) {
+      if (typeof at[k] !== 'number' || at[k] < 0) {
+        res.status(400).json({ error: `autotune.${k} 必須是 ≥ 0 的數字` }); return;
+      }
+    }
+    if (at.lowThreshold >= at.highThreshold) {
+      res.status(400).json({ error: 'autotune.lowThreshold 必須小於 highThreshold' }); return;
+    }
+  }
   const saved = await saveConfig(b as KapaiConfig);
   res.json({ env: APP_ENV(), config: saved });
 }

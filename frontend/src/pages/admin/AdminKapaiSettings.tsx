@@ -11,6 +11,7 @@ interface KapaiConfig {
     volSurgeRatio: number; minRecentCount: number; minBaseline: number;
     discountThreshold: number; minProfit: number;
   };
+  autotune: { enabled: boolean; lowThreshold: number; highThreshold: number };
 }
 
 const GAMES: { key: keyof Pick<ScrapeWindow, 'pkmtw' | 'pkmjp' | 'pkmen'>; label: string }[] = [
@@ -60,6 +61,7 @@ export default function AdminKapaiSettings() {
   const setParam = (k: keyof KapaiConfig['params'], v: number) => config && setConfig({ ...config, params: { ...config.params, [k]: v } });
   const setPush = (k: keyof KapaiConfig['push'], v: number) => config && setConfig({ ...config, push: { ...config.push, [k]: v } });
   const setSurge = (k: keyof KapaiConfig['surge'], v: number | boolean) => config && setConfig({ ...config, surge: { ...config.surge, [k]: v } });
+  const setAutotune = (k: keyof KapaiConfig['autotune'], v: number | boolean) => config && setConfig({ ...config, autotune: { ...config.autotune, [k]: v } });
 
   if (!config) return (
     <div style={{ fontFamily: 'system-ui', color: '#64748B' }}>
@@ -149,6 +151,16 @@ export default function AdminKapaiSettings() {
       <div style={label}>只看新行情 ≥ {num(config.surge.minBaseline, v => setSurge('minBaseline', v))} 元（高價值卡）</div>
       <div style={label}>最低掛單 ≤ 新行情的 {num(Math.round(config.surge.discountThreshold * 100), v => setSurge('discountThreshold', v / 100), 64)} %</div>
       <div style={label}>最低省額 {num(config.surge.minProfit, v => setSurge('minProfit', v))} 元</div>
+
+      {/* ⑤ 每日自動調節 */}
+      <div style={sectionT}>⑤ 每日自動調節（每晚 00:00）</div>
+      <p style={{ fontSize: 12, color: '#475569', marginBottom: 8 }}>每天台灣 00:00 盤點當日兩軌通知數：太少自動放寬、太多自動收緊「跳漲軌」門檻，並推 Telegram 盤點報告。</p>
+      <label style={{ ...label, cursor: readOnly ? 'default' : 'pointer' }}>
+        <input type="checkbox" checked={config.autotune.enabled} disabled={readOnly} onChange={e => setAutotune('enabled', e.target.checked)} />
+        啟用每日自動調節
+      </label>
+      <div style={label}>當日通知 &lt; {num(config.autotune.lowThreshold, v => setAutotune('lowThreshold', v), 64)} 則 → 放寬一步</div>
+      <div style={label}>當日通知 &gt; {num(config.autotune.highThreshold, v => setAutotune('highThreshold', v), 64)} 則 → 收緊一步</div>
 
       {!readOnly && (
         <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 14 }}>
