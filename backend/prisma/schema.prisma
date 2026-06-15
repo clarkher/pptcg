@@ -301,6 +301,7 @@ model ArbitrageAlert {
   discount  Float
   profit    Int
   notified  Boolean  @default(false)
+  source    String   @default("listing") // "listing"=新掛單軌 / "surge"=行情跳漲軌
   pushedAt  DateTime @default(now())
 
   @@index([pushedAt])
