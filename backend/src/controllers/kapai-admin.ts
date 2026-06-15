@@ -32,6 +32,25 @@ export async function adminPutKapaiConfig(req: AuthRequest, res: Response) {
       }
     }
   }
+  if (b.surge) {
+    const sg = b.surge;
+    if (typeof sg.enabled !== 'boolean') {
+      res.status(400).json({ error: 'surge.enabled 必須是 true/false' }); return;
+    }
+    for (const k of ['recentDays', 'priorDays', 'minRecentCount', 'minBaseline', 'minProfit'] as const) {
+      if (typeof sg[k] !== 'number' || sg[k] < 0) {
+        res.status(400).json({ error: `surge.${k} 必須是 ≥ 0 的數字` }); return;
+      }
+    }
+    for (const k of ['priceSurgeRatio', 'volSurgeRatio'] as const) {
+      if (typeof sg[k] !== 'number' || sg[k] <= 0) {
+        res.status(400).json({ error: `surge.${k} 必須 > 0` }); return;
+      }
+    }
+    if (typeof sg.discountThreshold !== 'number' || sg.discountThreshold <= 0 || sg.discountThreshold > 1) {
+      res.status(400).json({ error: 'surge.discountThreshold 必須在 0–1 之間' }); return;
+    }
+  }
   const saved = await saveConfig(b as KapaiConfig);
   res.json({ env: APP_ENV(), config: saved });
 }
