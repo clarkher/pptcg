@@ -6,6 +6,11 @@ interface KapaiConfig {
   scrapeWindows: ScrapeWindow[];
   params: { discountThreshold: number; minProfit: number; minMarketValue: number; minSamples: number };
   push: { noPushStartHour: number; noPushEndHour: number; lineBatchTopN: number };
+  surge: {
+    enabled: boolean; recentDays: number; priorDays: number; priceSurgeRatio: number;
+    volSurgeRatio: number; minRecentCount: number; minBaseline: number;
+    discountThreshold: number; minProfit: number;
+  };
 }
 
 const GAMES: { key: keyof Pick<ScrapeWindow, 'pkmtw' | 'pkmjp' | 'pkmen'>; label: string }[] = [
@@ -54,6 +59,7 @@ export default function AdminKapaiSettings() {
   }
   const setParam = (k: keyof KapaiConfig['params'], v: number) => config && setConfig({ ...config, params: { ...config.params, [k]: v } });
   const setPush = (k: keyof KapaiConfig['push'], v: number) => config && setConfig({ ...config, push: { ...config.push, [k]: v } });
+  const setSurge = (k: keyof KapaiConfig['surge'], v: number | boolean) => config && setConfig({ ...config, surge: { ...config.surge, [k]: v } });
 
   if (!config) return (
     <div style={{ fontFamily: 'system-ui', color: '#64748B' }}>
@@ -128,6 +134,21 @@ export default function AdminKapaiSettings() {
       <div style={sectionT}>③ 推播</div>
       <div style={label}>不推時段（台灣）{num(config.push.noPushStartHour, v => setPush('noPushStartHour', v), 64)} 點 ～ {num(config.push.noPushEndHour, v => setPush('noPushEndHour', v), 64)} 點</div>
       <div style={label}>LINE 每批推前 {num(config.push.lineBatchTopN, v => setPush('lineBatchTopN', v), 64)} 大價差</div>
+
+      {/* ④ 行情跳漲偵測（美日卡） */}
+      <div style={sectionT}>④ 行情跳漲偵測（美日卡）</div>
+      <p style={{ fontSize: 12, color: '#475569', marginBottom: 8 }}>每小時掃高價值美日卡：Huca 成交「漲價＋熱度」雙跳漲，就回抓卡拍拍目前最低掛單算獲利。</p>
+      <label style={{ ...label, cursor: readOnly ? 'default' : 'pointer' }}>
+        <input type="checkbox" checked={config.surge.enabled} disabled={readOnly} onChange={e => setSurge('enabled', e.target.checked)} />
+        啟用行情跳漲偵測
+      </label>
+      <div style={label}>近期視窗 {num(config.surge.recentDays, v => setSurge('recentDays', v), 64)} 天，對照視窗 {num(config.surge.priorDays, v => setSurge('priorDays', v), 64)} 天</div>
+      <div style={label}>漲價倍數 近期中位 ≥ 對照 × {num(config.surge.priceSurgeRatio, v => setSurge('priceSurgeRatio', v), 64)}</div>
+      <div style={label}>熱度倍數 近期週量 ≥ 對照週均 × {num(config.surge.volSurgeRatio, v => setSurge('volSurgeRatio', v), 64)}</div>
+      <div style={label}>近期最少成交筆數 {num(config.surge.minRecentCount, v => setSurge('minRecentCount', v), 64)}</div>
+      <div style={label}>只看新行情 ≥ {num(config.surge.minBaseline, v => setSurge('minBaseline', v))} 元（高價值卡）</div>
+      <div style={label}>最低掛單 ≤ 新行情的 {num(Math.round(config.surge.discountThreshold * 100), v => setSurge('discountThreshold', v / 100), 64)} %</div>
+      <div style={label}>最低省額 {num(config.surge.minProfit, v => setSurge('minProfit', v))} 元</div>
 
       {!readOnly && (
         <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 14 }}>
