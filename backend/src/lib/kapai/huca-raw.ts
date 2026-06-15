@@ -1,16 +1,10 @@
 import { prisma } from '../prisma';
+import { JPY_TWD, median } from './logic';
 
 // 從 Huca 背後的 Snkrdunk 在售明細，算「純裸卡」市價（排除 PSA/BGS 鑑定卡）
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
-const JPY_TWD = 0.21;        // 日圓→台幣近期匯率
 const RAW_GRADE_KEY = '18';  // Snkrdunk chart 裸卡主品相 grade key（22=PSA10/23=PSA9）
 const RECENT_DAYS = 30;      // 取近 N 天成交
-
-function median(a: number[]): number {
-  const s = [...a].sort((x, y) => x - y);
-  const m = Math.floor(s.length / 2);
-  return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
-}
 
 /**
  * snkrdunk_id → 純裸卡「成交」市價（TWD 中位數）。

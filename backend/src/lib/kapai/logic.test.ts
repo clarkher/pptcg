@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { median, buildCardKey, isArbitrage, matchesPreference, isArbitrageVsHuca, isArbitrageVsRaw, isDeal, isHucaBaselineReliable, HUCA_STRICT_PARAMS, RAW_PARAMS, KAPAI_PARAMS, DEFAULT_PARAMS } from './logic';
+import { median, buildCardKey, isArbitrage, matchesPreference, isArbitrageVsHuca, isArbitrageVsRaw, isDeal, isHucaBaselineReliable, HUCA_STRICT_PARAMS, RAW_PARAMS, KAPAI_PARAMS, DEFAULT_PARAMS, computeSurge, pickSurgeDeal } from './logic';
 
 describe('median', () => {
   it('空陣列回 0', () => expect(median([])).toBe(0));
@@ -88,4 +88,81 @@ describe('isHucaBaselineReliable（日英 Huca 基準防呆：站內同 rare 佐
     expect(isHucaBaselineReliable(789, null, 0, minSamples)).toBe(true));
   it('剛好3倍 → 仍可信(邊界)', () =>
     expect(isHucaBaselineReliable(3000, 1000, 10, minSamples)).toBe(true));
+});
+
+describe('computeSurge', () => {
+  const NOW = Date.UTC(2026, 5, 14); // 2026-06-14
+  const DAY = 24 * 60 * 60 * 1000;
+  const P = { recentDays: 7, priorDays: 30, priceSurgeRatio: 1.2, volSurgeRatio: 2, minRecentCount: 3 };
+  const recentAt = (d: number) => NOW - d * DAY;
+  const priorAt = (d: number) => NOW - d * DAY;
+
+  it('漲價且熱度→surge，新基準=近期中位×匯率', () => {
+    const series: [number, number][] = [
+      [recentAt(1), 5000], [recentAt(2), 5000], [recentAt(3), 5000], [recentAt(4), 5000],
+      [priorAt(10), 3000], [priorAt(20), 3000], [priorAt(30), 3000],
+    ];
+    const r = computeSurge(series, P, NOW);
+    expect(r.priceSurged).toBe(true);
+    expect(r.volSurged).toBe(true);
+    expect(r.surged).toBe(true);
+    expect(r.recentMedianTwd).toBe(Math.round(5000 * 0.21));
+  });
+
+  it('只漲不熱→否', () => {
+    const prior: [number, number][] = Array.from({ length: 30 }, (_, i) => [priorAt(8 + i), 3000] as [number, number]);
+    const series: [number, number][] = [[recentAt(1), 5000], [recentAt(3), 5000], [recentAt(5), 5000], ...prior];
+    const r = computeSurge(series, P, NOW);
+    expect(r.priceSurged).toBe(true);
+    expect(r.volSurged).toBe(false);
+    expect(r.surged).toBe(false);
+  });
+
+  it('只熱不漲→否', () => {
+    const recent: [number, number][] = Array.from({ length: 10 }, (_, i) => [recentAt(1 + (i % 6)), 3000] as [number, number]);
+    const series: [number, number][] = [...recent, [priorAt(10), 3000], [priorAt(20), 3000], [priorAt(30), 3000]];
+    const r = computeSurge(series, P, NOW);
+    expect(r.volSurged).toBe(true);
+    expect(r.priceSurged).toBe(false);
+    expect(r.surged).toBe(false);
+  });
+
+  it('近期樣本不足→否', () => {
+    const series: [number, number][] = [[recentAt(1), 5000], [recentAt(2), 5000], [priorAt(10), 3000], [priorAt(20), 3000]];
+    expect(computeSurge(series, P, NOW).surged).toBe(false);
+  });
+
+  it('對照期無樣本→否', () => {
+    const series: [number, number][] = [[recentAt(1), 5000], [recentAt(2), 5000], [recentAt(3), 5000]];
+    expect(computeSurge(series, P, NOW).surged).toBe(false);
+  });
+});
+
+describe('pickSurgeDeal', () => {
+  const params = { discountThreshold: 0.8, minProfit: 200, minMarketValue: 1000, minSamples: 5 };
+  const L = (id: number, price: number, rare = 'AR') => ({ id, price, rare });
+
+  it('同稀有度最低掛單夠便宜→回該筆', () => {
+    const listings = [L(1, 2000), L(2, 2800), L(3, 3000), L(4, 3100), L(5, 3200)];
+    const d = pickSurgeDeal(listings, 3000, params);
+    expect(d).not.toBeNull();
+    expect(d!.listing.id).toBe(1);
+    expect(d!.profit).toBe(1000);
+    expect(d!.siteMin).toBe(2800);
+  });
+
+  it('折扣不足→null', () => {
+    const listings = [L(1, 2600), L(2, 2900), L(3, 3000)];
+    expect(pickSurgeDeal(listings, 3000, params)).toBeNull();
+  });
+
+  it('跨稀有度取較高利潤，且擋掉基準對不上的稀有度', () => {
+    const listings = [
+      L(1, 2000, 'A'), L(2, 2900, 'A'), L(3, 3000, 'A'), L(4, 3100, 'A'), L(5, 3050, 'A'),
+      L(6, 500, 'B'), L(7, 600, 'B'), L(8, 700, 'B'), L(9, 800, 'B'), L(10, 900, 'B'),
+    ];
+    const d = pickSurgeDeal(listings, 3000, params);
+    expect(d!.listing.rare).toBe('A');
+    expect(d!.listing.id).toBe(1);
+  });
 });

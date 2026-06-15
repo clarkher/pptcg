@@ -19,6 +19,9 @@ export function median(values: number[]): number {
   return s.length % 2 !== 0 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2);
 }
 
+// 日圓→台幣近期匯率（成交序列換算用，與 huca-raw 共用）
+export const JPY_TWD = 0.21;
+
 export function buildCardKey(packId: string, packCardId: string): string | null {
   const pid = (packId ?? '').trim();
   const num = (packCardId ?? '').trim();
@@ -195,4 +198,96 @@ export function matchesPreference(alert: AlertForMatch, pref: PreferenceFilter):
     if (saving < pref.minSavingPct) return false;
   }
   return true;
+}
+
+// ── 成交跳漲偵測（純計算）──
+
+export interface SurgeComputeParams {
+  recentDays: number;
+  priorDays: number;
+  priceSurgeRatio: number;
+  volSurgeRatio: number;
+  minRecentCount: number;
+}
+
+export interface SurgeResult {
+  surged: boolean;
+  recentMedianTwd: number;
+  priceSurged: boolean;
+  volSurged: boolean;
+  recentCount: number;
+  priorCount: number;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * 從成交走勢序列 [ts(ms), priceJPY][] 判斷是否「漲價且熱度暴增」。
+ * 近期 = 近 recentDays 天；對照 = 之前 priorDays 天。
+ * 漲價：近期中位 ≥ 對照中位 × priceSurgeRatio；熱度：近期週量 ≥ 對照週均 × volSurgeRatio。
+ * 兩者都成立才算 surge。樣本不足或對照期空 → 不算。recentMedianTwd 已換算台幣。
+ */
+export function computeSurge(series: [number, number][], params: SurgeComputeParams, now: number): SurgeResult {
+  const recentCut = now - params.recentDays * DAY_MS;
+  const priorCut = now - (params.recentDays + params.priorDays) * DAY_MS;
+  const recent: number[] = [];
+  const prior: number[] = [];
+  for (const point of series) {
+    const ts = point?.[0];
+    const price = point?.[1];
+    if (typeof ts !== 'number' || typeof price !== 'number' || price <= 0) continue;
+    if (ts >= recentCut) recent.push(price);
+    else if (ts >= priorCut) prior.push(price);
+  }
+  const none: SurgeResult = {
+    surged: false, recentMedianTwd: 0, priceSurged: false, volSurged: false,
+    recentCount: recent.length, priorCount: prior.length,
+  };
+  if (recent.length < params.minRecentCount || prior.length === 0) return none;
+  const recentMed = median(recent);
+  const priorMed = median(prior);
+  const priceSurged = priorMed > 0 && recentMed >= priorMed * params.priceSurgeRatio;
+  const recentWeekly = recent.length / (params.recentDays / 7);
+  const priorWeekly = prior.length / (params.priorDays / 7);
+  const volSurged = priorWeekly > 0 && recentWeekly >= priorWeekly * params.volSurgeRatio;
+  return {
+    surged: priceSurged && volSurged,
+    recentMedianTwd: Math.round(recentMed * JPY_TWD),
+    priceSurged, volSurged,
+    recentCount: recent.length, priorCount: prior.length,
+  };
+}
+
+/**
+ * 在某卡的 perfect 在售清單中，依稀有度分組，挑「最低掛單夠便宜且基準可信」的最佳一筆。
+ * - 同稀有度比價（避免一般版本被高稀有度基準帶歪）
+ * - isHucaBaselineReliable 防呆：基準遠高於同稀有度站內中位 → 該稀有度跳過
+ * - isDeal 套利判斷（基準 = 跳漲後近期成交中位）
+ * 回利潤最高的一筆，無命中回 null。泛型保留呼叫端的完整 listing 型別。
+ */
+export function pickSurgeDeal<T extends { id: number; price: number; rare: string }>(
+  listings: T[],
+  baseline: number,
+  params: KapaiArbParams
+): { listing: T; siteMin: number | null; profit: number; discount: number } | null {
+  const byRare = new Map<string, T[]>();
+  for (const l of listings) {
+    const arr = byRare.get(l.rare);
+    if (arr) arr.push(l);
+    else byRare.set(l.rare, [l]);
+  }
+  let best: { listing: T; siteMin: number | null; profit: number; discount: number } | null = null;
+  for (const group of byRare.values()) {
+    const sorted = [...group].sort((a, b) => a.price - b.price);
+    const cheapest = sorted[0];
+    const med = median(sorted.map((l) => l.price));
+    if (!isHucaBaselineReliable(baseline, med, group.length, params.minSamples)) continue;
+    const siteMin = sorted[1]?.price ?? null;
+    if (!isDeal({ price: cheapest.price, baseline, siteMin }, params)) continue;
+    const profit = baseline - cheapest.price;
+    if (!best || profit > best.profit) {
+      best = { listing: cheapest, siteMin, profit, discount: cheapest.price / baseline };
+    }
+  }
+  return best;
 }
