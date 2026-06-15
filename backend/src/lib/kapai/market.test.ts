@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchPerfectListings, fetchPerfectMarket, clearMarketCache } from './market';
+import { fetchPerfectListings, fetchPerfectMarket, clearMarketCache, parsePerfectProducts, fetchPerfectSnapshot } from './market';
 
 beforeEach(() => clearMarketCache());
 
@@ -82,5 +82,39 @@ describe('fetchPerfectMarket 用快取列表算行情', () => {
     ]);
     const m = await fetchPerfectMarket('pkmjp', 'SV2a', '025', 99);
     expect(m!.count).toBe(2);
+  });
+});
+
+describe('parsePerfectProducts', () => {
+  it('只留 perfect、解析完整欄位、濾掉壞價', () => {
+    const out = parsePerfectProducts({ data: { products: [
+      { id: 1, condition: 'perfect', price: '500', rare: 'AR', game: 'pkmjp', sellerId: 7, sellerNickname: '賣', sellerArea: '台北', productKey: '皮卡丘', packName: '包', packId: 'SV2a', packCardId: '025', stock: 2, createdTime: '2026-06-01' },
+      { id: 2, condition: 'rated', price: '900' },
+      { id: 3, condition: 'perfect', price: 'abc' },
+    ] } });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ id: 1, price: 500, rare: 'AR', sellerId: 7, productKey: '皮卡丘', packId: 'SV2a' });
+  });
+  it('無 products 回空陣列', () => {
+    expect(parsePerfectProducts({})).toEqual([]);
+  });
+});
+
+describe('fetchPerfectSnapshot', () => {
+  it('非標準卡回 null、不打 API', async () => {
+    const f = vi.fn();
+    vi.stubGlobal('fetch', f);
+    expect(await fetchPerfectSnapshot('pkmjp', 'DECK-x', 'y')).toBeNull();
+    expect(f).not.toHaveBeenCalled();
+  });
+  it('正常卡回完整 listings（不吃快取、每次都打）', async () => {
+    const f = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { products: [
+      { id: 1, condition: 'perfect', price: '500', rare: 'AR' },
+    ] } }) });
+    vi.stubGlobal('fetch', f);
+    const a = await fetchPerfectSnapshot('pkmjp', 'SV2a', '025');
+    const b = await fetchPerfectSnapshot('pkmjp', 'SV2a', '025');
+    expect(a).toHaveLength(1);
+    expect(f).toHaveBeenCalledTimes(2);
   });
 });
