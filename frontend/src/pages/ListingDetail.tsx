@@ -9,6 +9,7 @@ import { SEOHead } from '../components/SEOHead';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { QtyStepper } from '../components/QtyStepper';
+import { trackPixel } from '../lib/analytics';
 import cardPlaceholder from '../assets/card-placeholder.png';
 
 const COND_LABEL: Record<string, string> = { NM: '近全新', LP: '輕微磨損', MP: '中度磨損', HP: '重度磨損' };
@@ -32,6 +33,18 @@ export function ListingDetail() {
       setLoading(false);
     });
   }, [id]);
+
+  // Meta Pixel ViewContent — feeds the "viewed this card" retargeting audience
+  useEffect(() => {
+    if (!listing) return;
+    trackPixel('ViewContent', {
+      content_type: 'product',
+      content_ids: [listing.cardId],
+      content_name: listing.cardName,
+      currency: 'TWD',
+      value: listing.price,
+    });
+  }, [listing]);
 
   const handleAddToCart = async () => {
     if (!user) { navigate('/login'); return; }

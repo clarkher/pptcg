@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { ordersApi } from '../api/orders';
+import { trackPixel } from '../lib/analytics';
 import type { Order } from '../types';
 
 export function OrderResult() {
@@ -10,6 +11,23 @@ export function OrderResult() {
   const tradeNo = params.get('tradeNo') ?? '';
   const status = params.get('status');
   const [order, setOrder] = useState<Order | null>(null);
+  const purchaseFired = useRef(false);
+
+  // Meta Pixel Purchase — only once the order is actually paid (credit card).
+  // CVS code / COD become paid later and are covered server-side by the
+  // Conversions API. eventID matches the server event so Meta dedupes.
+  useEffect(() => {
+    if (!order || purchaseFired.current) return;
+    if (order.paymentStatus !== 'paid') return;
+    purchaseFired.current = true;
+    trackPixel('Purchase', {
+      content_type: 'product',
+      content_ids: order.items.map((i) => i.listingId),
+      currency: 'TWD',
+      value: order.total,
+      num_items: order.items.reduce((n, i) => n + i.quantity, 0),
+    }, `purchase_${order.id}`);
+  }, [order]);
 
   useEffect(() => {
     if (!tradeNo) return;

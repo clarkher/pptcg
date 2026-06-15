@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
 import { checkoutApi, submitEcpayForm, type PaymentMethod, type ShippingType } from '../api/checkout';
+import { trackPixel } from '../lib/analytics';
 
 const SHIPPING_LABELS: Record<ShippingType, string> = {
   UNIMART: '7-ELEVEN',
@@ -46,6 +47,13 @@ export function Checkout() {
     }
     setSubmitting(true);
     setError('');
+    trackPixel('InitiateCheckout', {
+      content_type: 'product',
+      content_ids: items.map((i) => i.listingId),
+      currency: 'TWD',
+      value: total,
+      num_items: items.reduce((n, i) => n + i.quantity, 0),
+    });
     try {
       if (paymentMethod === 'cvs_cod') {
         const res = await checkoutApi.selectStore(receiverName.trim(), phone, shippingType);

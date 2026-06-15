@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { CartItem } from '../types';
 import { cartApi } from '../api/cart';
+import { trackPixel } from '../lib/analytics';
 
 interface CartState {
   items: CartItem[];
@@ -28,6 +29,16 @@ export const useCartStore = create<CartState>()((set, get) => ({
   add: async (listingId, quantity = 1) => {
     await cartApi.add(listingId, quantity);
     await get().fetch();
+    const item = get().items.find((i) => i.listingId === listingId);
+    if (item) {
+      trackPixel('AddToCart', {
+        content_type: 'product',
+        content_ids: [listingId],
+        content_name: item.listing.cardName,
+        currency: 'TWD',
+        value: item.listing.price * quantity,
+      });
+    }
   },
   setQuantity: async (listingId, quantity) => {
     // 樂觀更新：先動 UI（步進器即時回應、連點讀到最新值），再用伺服器夾擠後的值校正

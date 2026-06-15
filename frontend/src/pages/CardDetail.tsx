@@ -5,6 +5,7 @@ import { wishlistApi } from '../api/wishlist';
 import { useAuthStore } from '../stores/authStore';
 import { useCartStore } from '../stores/cartStore';
 import { QtyStepper } from '../components/QtyStepper';
+import { trackPixel } from '../lib/analytics';
 import type { CatalogCardDetail, ConditionDef } from '../types/catalog';
 import cardPlaceholder from '../assets/card-placeholder.png';
 
@@ -32,6 +33,19 @@ export function CardDetail() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Meta Pixel ViewContent — feeds the "viewed this card" retargeting audience
+  useEffect(() => {
+    if (!card || !id) return;
+    const prices = card.variants.map((v) => v.price).filter((p) => p > 0);
+    trackPixel('ViewContent', {
+      content_type: 'product',
+      content_ids: [id],
+      content_name: card.name,
+      currency: 'TWD',
+      ...(prices.length ? { value: Math.min(...prices) } : {}),
+    });
+  }, [card, id]);
 
   const condLabel = (code: string) => conditions.find((c) => c.code === code)?.label ?? code;
 

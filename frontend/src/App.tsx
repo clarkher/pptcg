@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { RouteChangeTracker } from './components/RouteChangeTracker';
 import { AppShell } from './components/AppShell';
 import { Home } from './pages/Home';
 import { Browse } from './pages/Browse';
@@ -33,6 +34,7 @@ import { ResetPassword } from './pages/ResetPassword';
 function App() {
   return (
       <BrowserRouter>
+        <RouteChangeTracker />
         <Routes>
           {/* Static pages — no shell */}
           <Route path="/privacy" element={<Privacy />} />

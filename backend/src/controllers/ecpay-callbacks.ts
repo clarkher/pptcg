@@ -2,8 +2,39 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { verifyCheckMacValue, getPaymentConfig } from '../lib/ecpay';
 import { releaseOrderReservation, parseEcpayExpireDate } from '../lib/reservation';
+import { sendCapiEvent } from '../lib/meta-capi';
 
 const FRONTEND_URL = () => process.env.FRONTEND_URL!;
+
+// Fire a Meta Conversions API Purchase. eventId matches the client Pixel
+// Purchase (`purchase_${order.id}`) so Meta dedupes the two.
+async function firePurchaseCapi(order: {
+  id: string;
+  total: number;
+  buyerId: string;
+  receiverPhone: string | null;
+  buyer?: { email: string | null } | null;
+  items: { quantity: number; listing: { cardId: string } }[];
+}): Promise<void> {
+  await sendCapiEvent({
+    eventName: 'Purchase',
+    eventId: `purchase_${order.id}`,
+    user: {
+      email: order.buyer?.email ?? null,
+      phone: order.receiverPhone,
+      externalId: order.buyerId,
+    },
+    customData: {
+      currency: 'TWD',
+      value: order.total,
+      content_type: 'product',
+      content_ids: order.items.map((i) => i.listing.cardId),
+      num_items: order.items.reduce((n, i) => n + i.quantity, 0),
+    },
+    actionSource: 'website',
+    eventSourceUrl: FRONTEND_URL(),
+  });
+}
 
 // ─── POST /api/ecpay/payment-callback（server-to-server，綠界通知）
 export async function paymentCallback(req: Request, res: Response) {
@@ -20,7 +51,7 @@ export async function paymentCallback(req: Request, res: Response) {
   // 2. 找訂單
   const order = await prisma.order.findUnique({
     where: { merchantTradeNo: params.MerchantTradeNo },
-    include: { items: true },
+    include: { items: { include: { listing: true } }, buyer: true },
   });
   if (!order) {
     res.status(200).type('text/plain').send('0|Order Not Found');
@@ -45,6 +76,8 @@ export async function paymentCallback(req: Request, res: Response) {
         reservationExpiresAt: null,
       },
     });
+    // 付款成功 → 送 Meta Conversions API Purchase（ROAS 來源；與前端 Pixel 去重）
+    await firePurchaseCapi(order);
   } else if (['10100073', '10200047', '10200049', '2'].includes(params.RtnCode)) {
     // 超商代碼：取號成功（尚未付款）→ 記代碼，並把預留延長為綠界實際 ExpireDate。
     // 庫存已於結帳時預留，不再重複扣量、不清車。
@@ -110,10 +143,18 @@ export async function logisticsCallback(req: Request, res: Response) {
 
   // 取貨成功（RtnCode 300 = 已取貨）→ COD 視為完成
   if (RtnCode === '300' && AllPayLogisticsID) {
-    await prisma.order.updateMany({
-      where: { logisticsId: AllPayLogisticsID },
+    const updated = await prisma.order.updateMany({
+      where: { logisticsId: AllPayLogisticsID, paymentStatus: { not: 'paid' } },
       data: { paymentStatus: 'paid', status: 'completed' },
     });
+    // 只在真正轉成已付款的那一次送 Purchase（重複回呼不重送）
+    if (updated.count > 0) {
+      const order = await prisma.order.findFirst({
+        where: { logisticsId: AllPayLogisticsID },
+        include: { items: { include: { listing: true } }, buyer: true },
+      });
+      if (order) await firePurchaseCapi(order);
+    }
   }
 
   res.status(200).type('text/plain').send('1|OK');
