@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { median, buildCardKey, isArbitrage, matchesPreference, isArbitrageVsHuca, isArbitrageVsRaw, isDeal, isHucaBaselineReliable, HUCA_STRICT_PARAMS, RAW_PARAMS, KAPAI_PARAMS, DEFAULT_PARAMS, computeSurge, pickSurgeDeal } from './logic';
+import { median, buildCardKey, isArbitrage, matchesPreference, isArbitrageVsHuca, isArbitrageVsRaw, isDeal, isHucaBaselineReliable, HUCA_STRICT_PARAMS, RAW_PARAMS, KAPAI_PARAMS, DEFAULT_PARAMS, computeSurge, pickSurgeDeal, computeAutotune } from './logic';
 
 describe('median', () => {
   it('空陣列回 0', () => expect(median([])).toBe(0));
@@ -164,5 +164,45 @@ describe('pickSurgeDeal', () => {
     const d = pickSurgeDeal(listings, 3000, params);
     expect(d!.listing.rare).toBe('A');
     expect(d!.listing.id).toBe(1);
+  });
+});
+
+describe('computeAutotune', () => {
+  const surge = { enabled: true, recentDays: 7, priorDays: 30, priceSurgeRatio: 1.2, volSurgeRatio: 2, minRecentCount: 3, minBaseline: 1000, discountThreshold: 0.8, minProfit: 200 };
+
+  it('當日通知 < low → 放寬一步（各轉盤往地板移）', () => {
+    const r = computeAutotune(surge, 0, 5, 20);
+    expect(r.action).toBe('loosen');
+    expect(r.next.priceSurgeRatio).toBe(1.15);
+    expect(r.next.volSurgeRatio).toBe(1.9);
+    expect(r.next.discountThreshold).toBe(0.82);
+    expect(r.next.minProfit).toBe(180);
+    expect(r.next.minBaseline).toBe(1000);
+  });
+
+  it('當日通知 > high → 收緊一步（往預設移）', () => {
+    const loosened = { ...surge, priceSurgeRatio: 1.1, volSurgeRatio: 1.7, discountThreshold: 0.86, minProfit: 140 };
+    const r = computeAutotune(loosened, 25, 5, 20);
+    expect(r.action).toBe('tighten');
+    expect(r.next.priceSurgeRatio).toBe(1.15);
+    expect(r.next.volSurgeRatio).toBe(1.8);
+    expect(r.next.discountThreshold).toBe(0.84);
+    expect(r.next.minProfit).toBe(160);
+  });
+
+  it('介於之間 → 維持', () => {
+    expect(computeAutotune(surge, 10, 5, 20).action).toBe('hold');
+  });
+
+  it('已達最鬆地板再放寬 → 不變、回 hold', () => {
+    const floor = { ...surge, priceSurgeRatio: 1.05, volSurgeRatio: 1.2, discountThreshold: 0.9, minProfit: 100 };
+    const r = computeAutotune(floor, 0, 5, 20);
+    expect(r.action).toBe('hold');
+    expect(r.next).toEqual(floor);
+  });
+
+  it('收緊不會比預設更嚴（clamp 在 strict）', () => {
+    const r = computeAutotune(surge, 99, 5, 20);
+    expect(r.action).toBe('hold');
   });
 });

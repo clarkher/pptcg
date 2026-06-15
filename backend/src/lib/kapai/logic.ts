@@ -291,3 +291,54 @@ export function pickSurgeDeal<T extends { id: number; price: number; rare: strin
   }
   return best;
 }
+
+// ── 每日自動調節（純計算）：只調跳漲軌 4 個轉盤，鎖在 strict↔loose 安全帶 ──
+
+export type AutotuneAction = 'loosen' | 'tighten' | 'hold';
+
+const AUTOTUNE_BANDS = {
+  priceSurgeRatio: { strict: 1.2, loose: 1.05, step: 0.05 },
+  volSurgeRatio: { strict: 2.0, loose: 1.2, step: 0.1 },
+  discountThreshold: { strict: 0.8, loose: 0.9, step: 0.02 },
+  minProfit: { strict: 200, loose: 100, step: 20 },
+} as const;
+
+function moveToward(current: number, target: number, step: number): number {
+  if (target > current) return Math.min(target, current + step);
+  if (target < current) return Math.max(target, current - step);
+  return current;
+}
+const round2 = (v: number) => Math.round(v * 100) / 100;
+
+/**
+ * 依當日通知數決定放寬/收緊/維持跳漲軌門檻。
+ * count < low → loosen（往 loose 端移一步）；count > high → tighten（往 strict 端移一步）；其餘 hold。
+ * 已達端點而無實際變動 → 回 hold。純函式、泛型保留呼叫端 surge 型別。
+ */
+export function computeAutotune<T extends { priceSurgeRatio: number; volSurgeRatio: number; discountThreshold: number; minProfit: number }>(
+  surge: T,
+  alertCount: number,
+  lowThreshold: number,
+  highThreshold: number
+): { action: AutotuneAction; next: T } {
+  let action: AutotuneAction = 'hold';
+  if (alertCount < lowThreshold) action = 'loosen';
+  else if (alertCount > highThreshold) action = 'tighten';
+  if (action === 'hold') return { action, next: surge };
+
+  const end = action === 'loosen' ? 'loose' : 'strict';
+  const next: T = {
+    ...surge,
+    priceSurgeRatio: round2(moveToward(surge.priceSurgeRatio, AUTOTUNE_BANDS.priceSurgeRatio[end], AUTOTUNE_BANDS.priceSurgeRatio.step)),
+    volSurgeRatio: round2(moveToward(surge.volSurgeRatio, AUTOTUNE_BANDS.volSurgeRatio[end], AUTOTUNE_BANDS.volSurgeRatio.step)),
+    discountThreshold: round2(moveToward(surge.discountThreshold, AUTOTUNE_BANDS.discountThreshold[end], AUTOTUNE_BANDS.discountThreshold.step)),
+    minProfit: Math.round(moveToward(surge.minProfit, AUTOTUNE_BANDS.minProfit[end], AUTOTUNE_BANDS.minProfit.step)),
+  };
+  const changed =
+    next.priceSurgeRatio !== surge.priceSurgeRatio ||
+    next.volSurgeRatio !== surge.volSurgeRatio ||
+    next.discountThreshold !== surge.discountThreshold ||
+    next.minProfit !== surge.minProfit;
+  if (!changed) return { action: 'hold', next: surge };
+  return { action, next };
+}
