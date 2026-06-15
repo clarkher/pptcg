@@ -2,13 +2,14 @@ import cron from 'node-cron';
 import { runMonitorCycle } from './runner';
 import { runPushBatch } from './pusher';
 import { detectSurges } from './surge';
+import { runDailyAutotune } from './autotune';
 
 export function startKapaiCron(): void {
   if (process.env.KAPAI_MONITOR_ENABLED !== 'true') {
     console.log('[kapai] monitor disabled (set KAPAI_MONITOR_ENABLED=true to enable)');
     return;
   }
-  console.log('[kapai] monitor enabled — 全量重偵測每20分鐘、行情跳漲每小時、LINE批次每20分鐘');
+  console.log('[kapai] monitor enabled — 全量重偵測每20分鐘、行情跳漲每小時、每日盤點台灣00:00、LINE批次每20分鐘');
   // 偵測：每 20 分鐘爬+全量重比價+建 alert（Telegram 即時推、LINE 交給 pusher）
   cron.schedule('*/20 * * * *', () => {
     runMonitorCycle().catch((e) => console.error('[kapai] cycle error', e));
@@ -22,5 +23,11 @@ export function startKapaiCron(): void {
     detectSurges()
       .then((r) => console.log(`[kapai] surge scanned=${r.scanned} surged=${r.surged} detected=${r.detected}`))
       .catch((e) => console.error('[kapai] surge error', e));
+  });
+  // 每日盤點自動調節：16:00 UTC = 台灣 00:00（台灣無夏令時）。數當日兩軌通知，自動放寬/收緊跳漲軌 + 推盤點報告。
+  cron.schedule('0 16 * * *', () => {
+    runDailyAutotune()
+      .then((r) => console.log(`[kapai] autotune count=${r.count} action=${r.action}`))
+      .catch((e) => console.error('[kapai] autotune error', e));
   });
 }
