@@ -61,3 +61,15 @@ export async function getRawPrice(hucaCardId: number): Promise<{ rawPriceTwd: nu
   }
   return updateRawPrice(hucaCardId);
 }
+
+/**
+ * 取某卡的 snkrdunk 裸卡成交走勢原始序列 [ts(ms), priceJPY][]（grade 18）。
+ * 供 computeSurge 判斷跳漲。失敗或格式異常回空陣列。
+ */
+export async function fetchSurgeSeries(snkrdunkId: number): Promise<[number, number][]> {
+  const res = await fetch(`https://huca.tw/api/get_snkrdunk_chart.php?snkrdunk_id=${snkrdunkId}&mode=all`, { headers: { 'User-Agent': UA } });
+  if (!res.ok) return [];
+  const json: any = await res.json();
+  const series = json?.[RAW_GRADE_KEY];
+  return Array.isArray(series) ? (series as [number, number][]) : [];
+}
