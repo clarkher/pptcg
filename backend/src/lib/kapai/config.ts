@@ -24,16 +24,33 @@ export interface PushConfig {
   lineBatchTopN: number;   // LINE 每批推前 N 大價差
 }
 
+export interface SurgeConfig {
+  enabled: boolean;
+  recentDays: number;
+  priorDays: number;
+  priceSurgeRatio: number;
+  volSurgeRatio: number;
+  minRecentCount: number;
+  minBaseline: number;
+  discountThreshold: number;
+  minProfit: number;
+}
+
 export interface KapaiConfig {
   scrapeWindows: ScrapeWindow[];
   params: KapaiParams;
   push: PushConfig;
+  surge: SurgeConfig;
 }
 
 export const DEFAULT_CONFIG: KapaiConfig = {
   scrapeWindows: [{ startHour: 0, pkmtw: 1500, pkmjp: 1500, pkmen: 350 }],
   params: { discountThreshold: 0.7, minProfit: 100, minMarketValue: 300, minSamples: 5 },
   push: { noPushStartHour: 4, noPushEndHour: 8, lineBatchTopN: 5 },
+  surge: {
+    enabled: true, recentDays: 7, priorDays: 30, priceSurgeRatio: 1.2, volSurgeRatio: 2,
+    minRecentCount: 3, minBaseline: 1000, discountThreshold: 0.8, minProfit: 200,
+  },
 };
 
 /** 由 UTC Date 算台灣（UTC+8）當前小時 0–23。 */
@@ -72,6 +89,7 @@ export function parseConfig(raw: string | null): KapaiConfig {
       : DEFAULT_CONFIG.scrapeWindows,
     params: { ...DEFAULT_CONFIG.params, ...(obj.params ?? {}) },
     push: { ...DEFAULT_CONFIG.push, ...(obj.push ?? {}) },
+    surge: { ...DEFAULT_CONFIG.surge, ...(obj.surge ?? {}) },
   };
 }
 
