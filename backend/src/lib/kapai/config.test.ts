@@ -72,6 +72,7 @@ describe('parseConfig', () => {
       params: { discountThreshold: 0.75, minProfit: 150, minMarketValue: 500, minSamples: 8 },
       push: { noPushStartHour: 3, noPushEndHour: 9, lineBatchTopN: 10 },
       surge: { enabled: false, recentDays: 5, priorDays: 21, priceSurgeRatio: 1.3, volSurgeRatio: 2.5, minRecentCount: 4, minBaseline: 1500, discountThreshold: 0.75, minProfit: 300 },
+      autotune: { enabled: false, lowThreshold: 3, highThreshold: 15 },
     };
     expect(parseConfig(JSON.stringify(custom))).toEqual(custom);
   });
@@ -86,5 +87,17 @@ describe('parseConfig', () => {
   it('整段缺 surge → 全預設', () => {
     const cfg = parseConfig(JSON.stringify({ params: { minProfit: 150 } }));
     expect(cfg.surge).toEqual(DEFAULT_CONFIG.surge);
+  });
+
+  it('缺漏 autotune 補預設', () => {
+    const cfg = parseConfig(JSON.stringify({ autotune: { lowThreshold: 3 } }));
+    expect(cfg.autotune.lowThreshold).toBe(3);
+    expect(cfg.autotune.highThreshold).toBe(DEFAULT_CONFIG.autotune.highThreshold);
+    expect(cfg.autotune.enabled).toBe(DEFAULT_CONFIG.autotune.enabled);
+  });
+
+  it('整段缺 autotune → 全預設', () => {
+    const cfg = parseConfig(JSON.stringify({ params: { minProfit: 150 } }));
+    expect(cfg.autotune).toEqual(DEFAULT_CONFIG.autotune);
   });
 });

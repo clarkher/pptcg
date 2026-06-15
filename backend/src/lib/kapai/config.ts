@@ -36,11 +36,18 @@ export interface SurgeConfig {
   minProfit: number;
 }
 
+export interface AutotuneConfig {
+  enabled: boolean;
+  lowThreshold: number;  // 當日通知 < 此值 → 放寬
+  highThreshold: number; // 當日通知 > 此值 → 收緊
+}
+
 export interface KapaiConfig {
   scrapeWindows: ScrapeWindow[];
   params: KapaiParams;
   push: PushConfig;
   surge: SurgeConfig;
+  autotune: AutotuneConfig;
 }
 
 export const DEFAULT_CONFIG: KapaiConfig = {
@@ -51,6 +58,7 @@ export const DEFAULT_CONFIG: KapaiConfig = {
     enabled: true, recentDays: 7, priorDays: 30, priceSurgeRatio: 1.2, volSurgeRatio: 2,
     minRecentCount: 3, minBaseline: 1000, discountThreshold: 0.8, minProfit: 200,
   },
+  autotune: { enabled: true, lowThreshold: 5, highThreshold: 20 },
 };
 
 /** 由 UTC Date 算台灣（UTC+8）當前小時 0–23。 */
@@ -90,6 +98,7 @@ export function parseConfig(raw: string | null): KapaiConfig {
     params: { ...DEFAULT_CONFIG.params, ...(obj.params ?? {}) },
     push: { ...DEFAULT_CONFIG.push, ...(obj.push ?? {}) },
     surge: { ...DEFAULT_CONFIG.surge, ...(obj.surge ?? {}) },
+    autotune: { ...DEFAULT_CONFIG.autotune, ...(obj.autotune ?? {}) },
   };
 }
 
