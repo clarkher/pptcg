@@ -11,13 +11,14 @@ async function setting(key: string): Promise<string | null> {
   return s?.value ?? null;
 }
 
-export function buildText(listing: AlertListing, baseline: number): string {
+export function buildText(listing: AlertListing, baseline: number, opts?: { surge?: boolean }): string {
   const langMap: Record<string, string> = { pkmjp: '日文', pkmen: '英文', pkmtw: '繁中' };
   const lang = langMap[listing.game] ?? listing.game;
   // 基準來源：日英=Huca 裸卡成交價、繁中=卡拍拍站內 perfect 行情
   const src = listing.game === 'pkmtw' ? '站內行情' : 'Huca成交價';
+  const header = opts?.surge ? '🔥 行情跳漲撿漏' : '🚨 套利雷達';
   return (
-    `🚨 套利雷達\n\n${listing.name}\n套系：${listing.packName}\n番號：${listing.cardKey}｜語言：${lang}\n\n` +
+    `${header}\n\n${listing.name}\n套系：${listing.packName}\n番號：${listing.cardKey}｜語言：${lang}\n\n` +
     `💰 售價 NT$${listing.price}（${src} NT$${baseline}）\n📉 省 NT$${baseline - listing.price}\n` +
     `賣家：${listing.sellerNickname}（${listing.sellerArea}）\n\n` +
     `https://trade.kapaipai.tw/shop/${listing.sellerId}/${listing.id}`
