@@ -66,11 +66,15 @@ body::before {
 .mobile-bottom-nav { display: block; }
 .mobile-only-header { display: flex; }
 
+/* 手機底部有固定導覽列，footer 需留出空間避免版權列被遮住 */
+.site-footer { padding-bottom: calc(72px + env(safe-area-inset-bottom, 8px)); }
+
 @media (min-width: 1024px) {
   body { background: #04040c; }
   .lg-sidebar { display: flex; }
   .mobile-bottom-nav { display: none; }
   .mobile-only-header { display: none; }
+  .site-footer { padding-bottom: 0; }
 }
 
 /* ── Scrollbar ──────────────────────────── */

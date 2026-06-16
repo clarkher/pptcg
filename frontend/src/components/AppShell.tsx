@@ -5,6 +5,7 @@ import { useCartStore } from '../stores/cartStore';
 import { ShoppingCart } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
 import { VerifyEmailBanner } from './VerifyEmailBanner';
+import { Footer } from './Footer';
 import brandLogo from '../assets/brand-logo.png';
 
 const NAV = [
@@ -267,6 +268,8 @@ export function AppShell({ children }: Props) {
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           {children}
         </div>
+        {/* 全站 footer：客服信箱（綠界驗證一致）+ 條款連結，顯示於所有銷售頁 */}
+        {!location.pathname.startsWith('/listing/') && <Footer />}
       </main>
 
       {/* ── Mobile Bottom Nav ──────── */}

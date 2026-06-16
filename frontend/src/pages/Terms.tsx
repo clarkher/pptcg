@@ -74,8 +74,8 @@ export function Terms() {
         </Section>
 
         <Section title="10. 聯絡我們">
-          如有任何疑問，請聯絡：<br />
-          <span style={{ color: '#60A5FA' }}>contact@pipicards.com</span>
+          如有任何疑問，請聯絡客服信箱：<br />
+          <a href="mailto:clark042007@gmail.com" style={{ color: '#60A5FA' }}>clark042007@gmail.com</a>
         </Section>
       </div>
     </div>
