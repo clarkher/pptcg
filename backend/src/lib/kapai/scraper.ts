@@ -1,9 +1,7 @@
 import { prisma } from '../prisma';
 import { buildCardKey } from './logic';
 import { loadConfig, pickScrapeWindow, getTaiwanHour } from './config';
-
-const BASE = 'https://trade.kapaipai.tw/api';
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
+import { kapaiBase, kapaiHeaders } from './kapai-http';
 // 各 game 抓量改由後台 config 分時段定義（listProduct 翻頁無效但 pageSize 有效、最新優先）。
 
 interface RawProduct {
@@ -18,7 +16,7 @@ export async function fetchLatestProducts(): Promise<RawProduct[]> {
   const sizes: Record<string, number> = { pkmtw: w.pkmtw, pkmjp: w.pkmjp, pkmen: w.pkmen };
   const all: RawProduct[] = [];
   for (const [game, size] of Object.entries(sizes)) {
-    const res = await fetch(`${BASE}/product/listProduct?game=${game}&page=1&pageSize=${size}`, { headers: { 'User-Agent': UA } });
+    const res = await fetch(`${kapaiBase()}/product/listProduct?game=${game}&page=1&pageSize=${size}`, { headers: kapaiHeaders() });
     if (!res.ok) continue;
     const json: any = await res.json();
     all.push(...((json?.data?.products ?? []) as RawProduct[]));

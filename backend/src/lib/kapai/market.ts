@@ -1,7 +1,6 @@
 // 卡拍拍站內行情：同卡 perfect-only 賣家列表（condition=perfect 伺服器端過濾，排除 rated/flawed/other）
 // 官方 getAvgPriceBySku 棄用——實測會混到 rated 評級卡（火伊布官方均1300 vs perfect-only均1191/混合1454）
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
-const BASE = 'https://trade.kapaipai.tw/api';
+import { kapaiBase, kapaiHeaders } from './kapai-http';
 
 // 非標準卡（客製/套牌/原盒等）的 packId 前綴，排除不比價
 const NON_CARD = /^(DIY|DECK|SET|BOX|PACK)/i;
@@ -87,10 +86,10 @@ export async function fetchPerfectListings(
   if (c && Date.now() - c.at < TTL_MS) return c.value;
 
   const url =
-    `${BASE}/product/listProduct?game=${encodeURIComponent(game)}` +
+    `${kapaiBase()}/product/listProduct?game=${encodeURIComponent(game)}` +
     `&packId=${encodeURIComponent(packId)}&packCardId=${encodeURIComponent(packCardId)}` +
     `&condition=perfect&page=1&pageSize=50`;
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  const res = await fetch(url, { headers: kapaiHeaders() });
   if (!res.ok) return null; // 失敗不快取，下輪重試
   const value = parsePerfectProducts(await res.json());
   cache.set(key, { value, at: Date.now() });
@@ -131,10 +130,10 @@ export async function fetchPerfectSnapshot(
 ): Promise<PerfectListing[] | null> {
   if (!isStandardCard(packId, packCardId)) return null;
   const url =
-    `${BASE}/product/listProduct?game=${encodeURIComponent(game)}` +
+    `${kapaiBase()}/product/listProduct?game=${encodeURIComponent(game)}` +
     `&packId=${encodeURIComponent(packId)}&packCardId=${encodeURIComponent(packCardId)}` +
     `&condition=perfect&page=1&pageSize=50`;
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  const res = await fetch(url, { headers: kapaiHeaders() });
   if (!res.ok) return null;
   return parsePerfectProducts(await res.json());
 }
