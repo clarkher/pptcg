@@ -11,9 +11,9 @@ export async function runMonitorCycle(): Promise<void> {
   }
   running = true;
   try {
-    const { scraped, saved, skipped } = await ingestLatest();
+    const { scraped, saved, skipped, unchanged } = await ingestLatest();
     const { detected } = await detectAndAlert();
-    console.log(`[kapai] scraped=${scraped} saved=${saved} skipped=${skipped} detected=${detected}`);
+    console.log(`[kapai] scraped=${scraped} saved=${saved} unchanged=${unchanged} skipped=${skipped} detected=${detected}`);
   } finally {
     running = false;
   }

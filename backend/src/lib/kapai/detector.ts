@@ -77,6 +77,7 @@ export async function detectAndAlert(): Promise<{ detected: number }> {
   const pending = await prisma.kapaiListing.findMany({ where: { processed: false } });
   let detected = 0;
   let idx = 0;
+  const processedIds: number[] = [];
   async function worker() {
     while (idx < pending.length) {
       const l = pending[idx++];
@@ -85,9 +86,13 @@ export async function detectAndAlert(): Promise<{ detected: number }> {
       } catch {
         // 單筆失敗不影響整輪
       }
-      await prisma.kapaiListing.update({ where: { id: l.id }, data: { processed: true } });
+      processedIds.push(l.id);
     }
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+  // 一次性標記已處理（取代逐筆 update，省 DB compute）
+  if (processedIds.length > 0) {
+    await prisma.kapaiListing.updateMany({ where: { id: { in: processedIds } }, data: { processed: true } });
+  }
   return { detected };
 }

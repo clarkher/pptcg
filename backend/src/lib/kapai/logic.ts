@@ -29,6 +29,15 @@ export function buildCardKey(packId: string, packCardId: string): string | null 
   return `${pid}-${num}`;
 }
 
+/** 掛單是否需要重新寫入/比價：新出現或價/量有變才需要（沒變就跳過，省 DB 寫入）。 */
+export function listingChanged(
+  existing: { price: number; stock: number } | null | undefined,
+  scraped: { price: number; stock: number }
+): boolean {
+  if (!existing) return true;
+  return existing.price !== scraped.price || existing.stock !== scraped.stock;
+}
+
 export interface ArbitrageInput {
   price: number;
   baseline: number;

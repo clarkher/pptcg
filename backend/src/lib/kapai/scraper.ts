@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { buildCardKey } from './logic';
+import { buildCardKey, listingChanged } from './logic';
 import { loadConfig, pickScrapeWindow, getTaiwanHour } from './config';
 import { kapaiBase, kapaiHeaders } from './kapai-http';
 // 各 game 抓量改由後台 config 分時段定義（listProduct 翻頁無效但 pageSize 有效、最新優先）。
@@ -25,28 +25,39 @@ export async function fetchLatestProducts(): Promise<RawProduct[]> {
   return all;
 }
 
-export async function ingestLatest(): Promise<{ scraped: number; saved: number; skipped: number }> {
+export async function ingestLatest(): Promise<{ scraped: number; saved: number; skipped: number; unchanged: number }> {
   const products = await fetchLatestProducts();
-  let saved = 0, skipped = 0;
-  for (const p of products) {
-    const cardKey = buildCardKey(p.packId, p.packCardId);
-    if (!cardKey) { skipped++; continue; }
-    const price = parseInt(p.price, 10);
-    if (Number.isNaN(price)) { skipped++; continue; }
+  // 先過濾出有效掛單
+  const valid = products
+    .map((p) => ({ p, cardKey: buildCardKey(p.packId, p.packCardId), price: parseInt(p.price, 10) }))
+    .filter((x): x is { p: RawProduct; cardKey: string; price: number } => !!x.cardKey && !Number.isNaN(x.price));
+  const skipped = products.length - valid.length;
+
+  // 批次讀現有 price/stock，只寫「新出現或價/量有變」的，沒變的整列跳過（省 DB 寫入）
+  const existingRows = await prisma.kapaiListing.findMany({
+    where: { id: { in: valid.map((x) => x.p.id) } },
+    select: { id: true, price: true, stock: true },
+  });
+  const existing = new Map(existingRows.map((r) => [r.id, r]));
+
+  let saved = 0, unchanged = 0;
+  for (const { p, cardKey, price } of valid) {
+    const stock = p.stock ?? 0;
+    if (!listingChanged(existing.get(p.id), { price, stock })) { unchanged++; continue; }
     const base = {
       game: p.game, cardKey, setCode: p.packId, cardNumber: p.packCardId,
       name: p.productKey, packName: p.packName ?? '', rarity: p.rare ?? '',
-      price, stock: p.stock ?? 0, condition: p.condition ?? 'unknown',
+      price, stock, condition: p.condition ?? 'unknown',
       sellerId: p.sellerId ?? 0, sellerNickname: p.sellerNickname ?? '',
       sellerArea: p.sellerArea ?? '', listedAt: new Date(p.createdTime),
     };
     await prisma.kapaiListing.upsert({
       where: { id: p.id },
-      // processed:false → 全量重偵測：既有卡每輪重新進入比價（行情變動造成的撿漏也抓得到）
+      // processed:false → 進入比價；只有新上架/變價的才會走到這（其餘跳過不寫）
       update: { price: base.price, stock: base.stock, processed: false },
       create: { id: p.id, ...base, processed: false },
     });
     saved++;
   }
-  return { scraped: products.length, saved, skipped };
+  return { scraped: products.length, saved, skipped, unchanged };
 }
