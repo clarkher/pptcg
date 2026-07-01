@@ -2,7 +2,7 @@ import { prisma } from '../prisma';
 import { computeSurge, pickSurgeDeal } from './logic';
 import { fetchSurgeSeries } from './huca-raw';
 import { fetchPerfectSnapshot } from './market';
-import { buildText, pushTelegram, type AlertListing } from './notifier';
+import { buildText, notify, type AlertListing } from './notifier';
 import { loadConfig } from './config';
 
 const CONCURRENCY = 10; // 與主偵測一致：並行 10 路打 Huca/卡拍拍
@@ -87,7 +87,7 @@ export async function detectSurges(): Promise<{ scanned: number; surged: number;
           condition: l.condition, price: l.price, sellerId: l.sellerId,
           sellerNickname: l.sellerNickname, sellerArea: l.sellerArea,
         };
-        await pushTelegram(buildText(alertListing, s.recentMedianTwd, { surge: true }));
+        await notify(buildText(alertListing, s.recentMedianTwd, { surge: true }));
         detected++;
       } catch {
         // 單卡失敗不影響整輪

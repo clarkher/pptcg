@@ -2,7 +2,7 @@ import { prisma } from '../prisma';
 import { isDeal, isHucaBaselineReliable } from './logic';
 import { fetchPerfectMarket } from './market';
 import { getRawPrice } from './huca-raw';
-import { buildText, pushTelegram } from './notifier';
+import { buildText, notify } from './notifier';
 import { loadConfig, type KapaiParams } from './config';
 
 const PKM_GAMES = new Set(['pkmtw', 'pkmjp', 'pkmen']);
@@ -60,7 +60,7 @@ async function evaluate(l: Listing, params: KapaiParams): Promise<boolean> {
     },
   });
   // Telegram：偵測到即時全推（免費無配額）。LINE 仍由 pusher 批次處理。
-  await pushTelegram(buildText(l, baseline));
+  await notify(buildText(l, baseline));
   return true;
 }
 

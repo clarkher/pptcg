@@ -1,7 +1,7 @@
 import { prisma } from '../prisma';
 import { computeAutotune, type AutotuneAction } from './logic';
 import { loadConfig, saveConfig } from './config';
-import { pushTelegram } from './notifier';
+import { notify } from './notifier';
 
 const ACTION_ZH: Record<AutotuneAction, string> = {
   loosen: '放寬門檻一步',
@@ -43,6 +43,6 @@ export async function runDailyAutotune(): Promise<{ count: number; action: Autot
   if (action !== 'hold') {
     await saveConfig({ ...cfg, surge: next });
   }
-  await pushTelegram(buildAutotuneReport(total, total - surgeCnt, surgeCnt, action, next));
+  await notify(buildAutotuneReport(total, total - surgeCnt, surgeCnt, action, next));
   return { count: total, action };
 }

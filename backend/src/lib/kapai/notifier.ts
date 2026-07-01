@@ -42,6 +42,27 @@ export async function pushTelegram(text: string): Promise<boolean> {
   }
 }
 
+/** 鏡像推播到 Google Chat（incoming webhook，存 Setting['GOOGLE_CHAT_WEBHOOK']）。 */
+export async function pushGoogleChat(text: string): Promise<boolean> {
+  const url = await setting('GOOGLE_CHAT_WEBHOOK');
+  if (!url) return false;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** 統一推播：同一則訊息同步送到 Telegram 與 Google Chat（各自吞錯、互不影響）。 */
+export async function notify(text: string): Promise<void> {
+  await Promise.all([pushTelegram(text), pushGoogleChat(text)]);
+}
+
 /** 推一筆套利機會到 LINE（綁定用戶，有月配額）。 */
 export async function pushLine(listing: AlertListing, baseline: number): Promise<void> {
   const lineToken = await setting('LINE_CHANNEL_ACCESS_TOKEN');
