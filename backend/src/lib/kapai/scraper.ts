@@ -8,6 +8,7 @@ interface RawProduct {
   id: number; game: string; productKey: string; price: string; stock: number;
   condition: string; rare: string; packId: string; packCardId: string; packName: string;
   sellerId: number; sellerNickname: string; sellerArea: string; createdTime: string;
+  description: string;
 }
 
 export async function fetchLatestProducts(): Promise<RawProduct[]> {
@@ -47,6 +48,7 @@ export async function ingestLatest(): Promise<{ scraped: number; saved: number; 
     const base = {
       game: p.game, cardKey, setCode: p.packId, cardNumber: p.packCardId,
       name: p.productKey, packName: p.packName ?? '', rarity: p.rare ?? '',
+      description: p.description ?? '',
       price, stock, condition: p.condition ?? 'unknown',
       sellerId: p.sellerId ?? 0, sellerNickname: p.sellerNickname ?? '',
       sellerArea: p.sellerArea ?? '', listedAt: new Date(p.createdTime),
@@ -54,7 +56,7 @@ export async function ingestLatest(): Promise<{ scraped: number; saved: number; 
     await prisma.kapaiListing.upsert({
       where: { id: p.id },
       // processed:false → 進入比價；只有新上架/變價的才會走到這（其餘跳過不寫）
-      update: { price: base.price, stock: base.stock, processed: false },
+      update: { price: base.price, stock: base.stock, description: base.description, processed: false },
       create: { id: p.id, ...base, processed: false },
     });
     saved++;

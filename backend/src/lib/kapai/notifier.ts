@@ -1,9 +1,11 @@
 import { prisma } from '../prisma';
 import { linePush } from '../../controllers/line';
+import { analyzeNote } from './logic';
 
 export interface AlertListing {
   id: number; game: string; name: string; packName: string; cardKey: string;
   condition: string; price: number; sellerId: number; sellerNickname: string; sellerArea: string;
+  description?: string;
 }
 
 async function setting(key: string): Promise<string | null> {
@@ -17,9 +19,13 @@ export function buildText(listing: AlertListing, baseline: number, opts?: { surg
   // 基準來源：日英=Huca 裸卡成交價、繁中=卡拍拍站內 perfect 行情
   const src = listing.game === 'pkmtw' ? '站內行情' : 'Huca成交價';
   const header = opts?.surge ? '🔥 行情跳漲撿漏' : '🚨 套利雷達';
+  const note = (listing.description ?? '').trim();
+  // 備註有疑似瑕疵/缺件字樣 → 標 ⚠️ 提醒（隨機出貨那種已在偵測端直接不推）
+  const noteLine = note ? `${analyzeNote(note).warn ? '⚠️ ' : '📝 '}備註：${note}\n` : '';
   return (
     `${header}\n\n${listing.name}\n套系：${listing.packName}\n番號：${listing.cardKey}｜語言：${lang}\n\n` +
     `💰 售價 NT$${listing.price}（${src} NT$${baseline}）\n📉 省 NT$${baseline - listing.price}\n` +
+    noteLine +
     `賣家：${listing.sellerNickname}（${listing.sellerArea}）\n\n` +
     `https://trade.kapaipai.tw/shop/${listing.sellerId}/${listing.id}`
   );

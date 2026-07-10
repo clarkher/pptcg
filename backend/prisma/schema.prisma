@@ -263,6 +263,7 @@ model KapaiListing {
   name           String
   packName       String
   rarity         String
+  description    String   @default("") // 賣家備註（隨機出貨/A品/瑕疵等關鍵判斷）
   price          Int
   stock          Int
   condition      String

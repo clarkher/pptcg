@@ -38,6 +38,23 @@ export function listingChanged(
   return existing.price !== scraped.price || existing.stock !== scraped.stock;
 }
 
+// ── 卡拍拍賣家備註判斷 ──
+// 「隨機出貨」= 買到的不是圖上這張卡 → 抑制（不推）。瑕疵/缺件/損傷 → 警告（仍推、標⚠️）。
+const NOTE_SUPPRESS_RE = /隨機|亂數出/;
+const NOTE_WARN_RE = /[ABC]品|打牌品|瑕|裂|痕跡|磨損|凹|折痕|白邊|缺角|缺件|刮|受潮|水漬|翹|彎|破損|(?<![無无完])損/;
+
+export interface NoteFlags {
+  suppress: boolean; // 隨機出貨等：根本不是這張卡，別推
+  warn: boolean;     // 疑似瑕疵/缺件/損傷：仍推但標⚠️
+}
+
+/** 分析賣家備註，回傳是否該抑制/警告。純函式。 */
+export function analyzeNote(description: string | null | undefined): NoteFlags {
+  const d = (description ?? '').trim();
+  if (!d) return { suppress: false, warn: false };
+  return { suppress: NOTE_SUPPRESS_RE.test(d), warn: NOTE_WARN_RE.test(d) };
+}
+
 export interface ArbitrageInput {
   price: number;
   baseline: number;

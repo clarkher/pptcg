@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { isDeal, isHucaBaselineReliable } from './logic';
+import { isDeal, isHucaBaselineReliable, analyzeNote } from './logic';
 import { fetchPerfectMarket } from './market';
 import { getRawPrice } from './huca-raw';
 import { buildText, notify } from './notifier';
@@ -48,6 +48,8 @@ async function evaluate(l: Listing, params: KapaiParams): Promise<boolean> {
   if (baseline == null || !isDeal({ price: l.price, baseline, siteMin: market?.siteMin ?? null }, params)) {
     return false;
   }
+  // 備註「隨機出貨」= 買到的不是這張卡 → 不推
+  if (analyzeNote(l.description).suppress) return false;
   // 去重：同一 listing 推過就不再推（行情變動造成的新撿漏才會是新 listingId）
   const existing = await prisma.arbitrageAlert.findUnique({ where: { listingId: l.id } });
   if (existing) return false;

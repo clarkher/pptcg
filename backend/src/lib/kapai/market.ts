@@ -33,6 +33,7 @@ export interface PerfectListing {
   packCardId: string;
   stock: number;
   createdTime: string;
+  description: string;
 }
 
 /** 純解析 listProduct 回應 → perfect 完整 listing 陣列（濾非 perfect / 壞價）。 */
@@ -55,6 +56,7 @@ export function parsePerfectProducts(json: any): PerfectListing[] {
       packCardId: p?.packCardId ?? '',
       stock: p?.stock ?? 0,
       createdTime: p?.createdTime ?? '',
+      description: p?.description ?? '',
     }))
     .filter((l) => typeof l.id === 'number' && !Number.isNaN(l.price) && l.price > 0);
 }

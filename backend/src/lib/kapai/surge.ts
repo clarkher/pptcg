@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { computeSurge, pickSurgeDeal } from './logic';
+import { computeSurge, pickSurgeDeal, analyzeNote } from './logic';
 import { fetchSurgeSeries } from './huca-raw';
 import { fetchPerfectSnapshot } from './market';
 import { buildText, notify, type AlertListing } from './notifier';
@@ -61,6 +61,8 @@ export async function detectSurges(): Promise<{ scanned: number; surged: number;
         if (!deal) continue;
 
         const l = deal.listing;
+        // 備註「隨機出貨」= 買到的不是這張卡 → 不推
+        if (analyzeNote(l.description).suppress) continue;
         const existing = await prisma.arbitrageAlert.findUnique({ where: { listingId: l.id } });
         if (existing) continue; // 兩軌去重：已建過就不重複
 
@@ -69,7 +71,7 @@ export async function detectSurges(): Promise<{ scanned: number; surged: number;
           update: { price: l.price, stock: l.stock, processed: true },
           create: {
             id: l.id, game: l.game, cardKey: map.cardKey, setCode: l.packId, cardNumber: l.packCardId,
-            name: l.productKey, packName: l.packName, rarity: l.rare, price: l.price, stock: l.stock,
+            name: l.productKey, packName: l.packName, rarity: l.rare, description: l.description ?? '', price: l.price, stock: l.stock,
             condition: l.condition, sellerId: l.sellerId, sellerNickname: l.sellerNickname,
             sellerArea: l.sellerArea, listedAt: l.createdTime ? new Date(l.createdTime) : new Date(),
             processed: true,
@@ -85,7 +87,7 @@ export async function detectSurges(): Promise<{ scanned: number; surged: number;
         const alertListing: AlertListing = {
           id: l.id, game: l.game, name: l.productKey, packName: l.packName, cardKey: map.cardKey,
           condition: l.condition, price: l.price, sellerId: l.sellerId,
-          sellerNickname: l.sellerNickname, sellerArea: l.sellerArea,
+          sellerNickname: l.sellerNickname, sellerArea: l.sellerArea, description: l.description ?? '',
         };
         await notify(buildText(alertListing, s.recentMedianTwd, { surge: true }));
         detected++;
