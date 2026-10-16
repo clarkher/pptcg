@@ -70,8 +70,18 @@ export interface PerfectMarket {
 // ── 同卡 perfect 列表 30 分快取（全量重偵測時同卡多 listing/跨輪共用一次 API）──
 const cache = new Map<string, { value: PerfectListing[]; at: number }>();
 const TTL_MS = 30 * 60 * 1000;
+// 過期項只在讀取時判斷不會自己消失 → 每隔一個 TTL 掃一次刪掉，否則見過的卡永遠留在記憶體
+// （2026-10 正式機 3 個月累積 3.6 萬張卡、後端吃到 650MB）
+let lastSweep = 0;
 
-export function clearMarketCache(): void { cache.clear(); }
+function sweepExpired(now: number): void {
+  if (now - lastSweep < TTL_MS) return;
+  lastSweep = now;
+  for (const [k, v] of cache) if (now - v.at >= TTL_MS) cache.delete(k);
+}
+
+export function clearMarketCache(): void { cache.clear(); lastSweep = 0; }
+export function marketCacheSize(): number { return cache.size; }
 
 /**
  * 抓某卡「站內 perfect 裸卡」在售列表（id+price），非標準卡回 null。
@@ -94,7 +104,9 @@ export async function fetchPerfectListings(
   const res = await fetch(url, { headers: kapaiHeaders() });
   if (!res.ok) return null; // 失敗不快取，下輪重試
   const value = parsePerfectProducts(await res.json());
-  cache.set(key, { value, at: Date.now() });
+  const now = Date.now();
+  sweepExpired(now);
+  cache.set(key, { value, at: now });
   return value;
 }
 

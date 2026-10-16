@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchPerfectListings, fetchPerfectMarket, clearMarketCache, parsePerfectProducts, fetchPerfectSnapshot } from './market';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { fetchPerfectListings, fetchPerfectMarket, clearMarketCache, marketCacheSize, parsePerfectProducts, fetchPerfectSnapshot } from './market';
 
 beforeEach(() => clearMarketCache());
 
@@ -33,6 +33,33 @@ describe('fetchPerfectListings 快取', () => {
     const f = mockProducts([]);
     expect(await fetchPerfectListings('pkmtw', 'DECK-冰岩怪', 'x')).toBeNull();
     expect(f).not.toHaveBeenCalled();
+  });
+});
+
+describe('快取過期清理（防記憶體無限成長）', () => {
+  const MIN = 60 * 1000;
+  beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(0); clearMarketCache(); });
+  afterEach(() => vi.useRealTimers());
+
+  it('過期的卡在之後寫入時被清掉，不會一直累積', async () => {
+    mockProducts([{ id: 1, condition: 'perfect', price: '500' }]);
+    for (let i = 1; i <= 100; i++) await fetchPerfectListings('pkmtw', 'M4', String(i));
+    expect(marketCacheSize()).toBe(100);
+    vi.setSystemTime(31 * MIN); // 超過 30 分 TTL
+    await fetchPerfectListings('pkmtw', 'M4', '999');
+    expect(marketCacheSize()).toBe(1); // 舊的 100 張全清，只剩新的那張
+  });
+
+  it('還沒過期的卡保留、照樣走快取', async () => {
+    const f = mockProducts([{ id: 1, condition: 'perfect', price: '500' }]);
+    await fetchPerfectListings('pkmtw', 'M4', '1'); // t=0
+    vi.setSystemTime(20 * MIN);
+    await fetchPerfectListings('pkmtw', 'M4', '2'); // t=20
+    vi.setSystemTime(31 * MIN);
+    await fetchPerfectListings('pkmtw', 'M4', '3'); // t=31 → 清掉卡1，卡2只放11分鐘要留著
+    expect(marketCacheSize()).toBe(2);
+    await fetchPerfectListings('pkmtw', 'M4', '2');
+    expect(f).toHaveBeenCalledTimes(3); // 卡2 命中快取沒重打
   });
 });
 
